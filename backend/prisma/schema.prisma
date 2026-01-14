@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  passwordHash    String   @map("password_hash")
+  settings        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  cards           Card[]
+  cardProgress    CardProgress[]
+  reviewLogs      ReviewLog[]
+  studySessions   StudySession[]
+
+  @@map("users")
+}
+
+model Card {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  hanzi             String
+  pinyin            String
+  pinyinDisplay     String    @map("pinyin_display")
+  english           String
+  englishAlt        String[]  @map("english_alt")
+  exampleSentence   String?   @map("example_sentence")
+  examplePinyin     String?   @map("example_pinyin")
+  exampleEnglish    String?   @map("example_english")
+  hskLevel          Int?      @map("hsk_level")
+  tags              String[]
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardProgress      CardProgress[]
+
+  @@index([userId])
+  @@map("cards")
+}
+
+model CardProgress {
+  id                String    @id @default(uuid())
+  cardId            String    @map("card_id")
+  userId            String    @map("user_id")
+  mode              String
+  easeFactor        Float     @default(2.5) @map("ease_factor")
+  intervalDays      Int       @default(0) @map("interval_days")
+  repetitions       Int       @default(0)
+  nextReviewDate    DateTime? @map("next_review_date")
+  totalReviews      Int       @default(0) @map("total_reviews")
+  correctCount      Int       @default(0) @map("correct_count")
+  lastReviewedAt    DateTime? @map("last_reviewed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  card              Card      @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewLogs        ReviewLog[]
+
+  @@unique([cardId, mode])
+  @@index([userId, mode, nextReviewDate])
+  @@map("card_progress")
+}
+
+model ReviewLog {
+  id                String   @id @default(uuid())
+  cardProgressId    String   @map("card_progress_id")
+  userId            String   @map("user_id")
+  quality           Int
+  responseTimeMs    Int?     @map("response_time_ms")
+  wasCorrect        Boolean  @map("was_correct")
+  reviewedAt        DateTime @default(now()) @map("reviewed_at")
+
+  cardProgress      CardProgress @relation(fields: [cardProgressId], references: [id], onDelete: Cascade)
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, reviewedAt])
+  @@map("review_logs")
+}
+
+model StudySession {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  mode            String
+  startedAt       DateTime  @default(now()) @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  cardsReviewed   Int       @default(0) @map("cards_reviewed")
+  correctCount    Int       @default(0) @map("correct_count")
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("study_sessions")
+}
