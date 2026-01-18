@@ -23,10 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fetch the user data from the token
       api.getMe()
         .then((userData) => {
-          setUser({
-            ...userData,
-            createdAt: new Date(userData.createdAt),
-          } as User);
+          setUser(userData as User);
           setLoading(false);
         })
         .catch(() => {

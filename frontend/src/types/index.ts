@@ -9,7 +9,7 @@ export type QuizMode =
 export interface User {
   id: string;
   email: string;
-  createdAt: Date;
+  createdAt: string | Date;
   settings: UserSettings;
 }
 
