@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import prisma from '../db.js';
+import { seedVocabForUser } from './vocabSeedService.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-change-in-production';
@@ -50,6 +51,14 @@ export const authService = {
         settings: true,
       },
     });
+
+    // Seed Integrated Chinese vocabulary for the new user
+    try {
+      await seedVocabForUser(user.id);
+    } catch (error) {
+      console.error('Failed to seed vocabulary for new user:', error);
+      // Don't fail registration if vocab seeding fails
+    }
 
     // Generate tokens
     const accessToken = jwt.sign({ userId: user.id }, JWT_SECRET, {
