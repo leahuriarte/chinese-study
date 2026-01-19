@@ -9,6 +9,24 @@ export interface VocabItem {
   tags: string[];
 }
 
+/**
+ * Extract textbook part and lesson number from IC tag like "IC1-L3"
+ * Returns { part: 1, lesson: 3 } for "IC1-L3"
+ */
+export function parseICTag(tags: string[]): { textbookPart: number; lessonNumber: number } | null {
+  const icTag = tags.find(t => t.startsWith('IC'));
+  if (!icTag) return null;
+
+  const match = icTag.match(/^IC(\d+)-L(\d+)$/);
+  if (match) {
+    return {
+      textbookPart: parseInt(match[1]),
+      lessonNumber: parseInt(match[2]),
+    };
+  }
+  return null;
+}
+
 export const integratedChineseVocab: VocabItem[] = [
   // Lesson 1
   { hanzi: "北京", pinyin: "beijing", pinyinDisplay: "Běijīng", english: "Beijing", tags: ["IC1-L1", "proper noun"] },

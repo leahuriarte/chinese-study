@@ -13,6 +13,8 @@ const createCardSchema = z.object({
   examplePinyin: z.string().optional(),
   exampleEnglish: z.string().optional(),
   hskLevel: z.number().min(1).max(6).optional(),
+  textbookPart: z.number().min(1).optional(),
+  lessonNumber: z.number().min(1).optional(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -49,6 +51,8 @@ export const cardsController = {
       const limit = parseInt(req.query.limit as string) || 20;
       const tags = req.query.tags ? (req.query.tags as string).split(',') : undefined;
       const hskLevel = req.query.hskLevel ? parseInt(req.query.hskLevel as string) : undefined;
+      const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
+      const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
       const search = req.query.search as string;
 
       const result = await cardService.listCards({
@@ -57,6 +61,8 @@ export const cardsController = {
         limit,
         tags,
         hskLevel,
+        textbookPart,
+        lessonNumber,
         search,
       });
 

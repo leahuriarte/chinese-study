@@ -41,6 +41,8 @@ model Card {
   examplePinyin     String?   @map("example_pinyin")
   exampleEnglish    String?   @map("example_english")
   hskLevel          Int?      @map("hsk_level")
+  textbookPart      Int?      @map("textbook_part")
+  lessonNumber      Int?      @map("lesson_number")
   tags              String[]
   createdAt         DateTime  @default(now()) @map("created_at")
   updatedAt         DateTime  @updatedAt @map("updated_at")

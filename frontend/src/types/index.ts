@@ -32,6 +32,8 @@ export interface Card {
   examplePinyin?: string;
   exampleEnglish?: string;
   hskLevel?: number;           // 1-6, optional
+  textbookPart?: number;       // 1 for Part 1, etc.
+  lessonNumber?: number;       // 1-10 for IC Part 1
   tags: string[];              // user-defined tags like "food", "verbs"
   createdAt: Date;
   updatedAt: Date;

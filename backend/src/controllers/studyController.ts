@@ -23,13 +23,16 @@ export const studyController = {
       const userId = req.userId!;
       const mode = req.query.mode as any;
       const limit = parseInt(req.query.limit as string) || 20;
+      const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
+      const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
 
       if (!mode) {
         res.status(400).json({ error: 'Mode is required' });
         return;
       }
 
-      const cards = await studyService.getDueCards(userId, mode, limit);
+      const filters = { textbookPart, lessonNumber };
+      const cards = await studyService.getDueCards(userId, mode, limit, filters);
       res.json(cards);
     } catch (error) {
       if (error instanceof Error) {
@@ -45,13 +48,16 @@ export const studyController = {
       const userId = req.userId!;
       const mode = req.query.mode as any;
       const limit = parseInt(req.query.limit as string) || 10;
+      const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
+      const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
 
       if (!mode) {
         res.status(400).json({ error: 'Mode is required' });
         return;
       }
 
-      const cards = await studyService.getNewCards(userId, mode, limit);
+      const filters = { textbookPart, lessonNumber };
+      const cards = await studyService.getNewCards(userId, mode, limit, filters);
       res.json(cards);
     } catch (error) {
       if (error instanceof Error) {

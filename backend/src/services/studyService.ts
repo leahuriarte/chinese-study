@@ -16,9 +16,23 @@ export interface ReviewSubmission {
   responseTimeMs: number;
 }
 
+export interface StudyFilters {
+  textbookPart?: number;
+  lessonNumber?: number;
+}
+
 export const studyService = {
-  async getDueCards(userId: string, mode: QuizMode, limit: number = 20) {
+  async getDueCards(userId: string, mode: QuizMode, limit: number = 20, filters?: StudyFilters) {
     const now = new Date();
+
+    // Build card filter for part/lesson
+    const cardFilter: any = {};
+    if (filters?.textbookPart) {
+      cardFilter.textbookPart = filters.textbookPart;
+    }
+    if (filters?.lessonNumber) {
+      cardFilter.lessonNumber = filters.lessonNumber;
+    }
 
     const dueProgress = await prisma.cardProgress.findMany({
       where: {
@@ -27,6 +41,7 @@ export const studyService = {
         nextReviewDate: {
           lte: now,
         },
+        card: Object.keys(cardFilter).length > 0 ? cardFilter : undefined,
       },
       include: {
         card: true,
@@ -43,17 +58,27 @@ export const studyService = {
     }));
   },
 
-  async getNewCards(userId: string, mode: QuizMode, limit: number = 10) {
-    // Find cards that don't have progress for this mode yet
-    const cards = await prisma.card.findMany({
-      where: {
-        userId,
-        cardProgress: {
-          none: {
-            mode,
-          },
+  async getNewCards(userId: string, mode: QuizMode, limit: number = 10, filters?: StudyFilters) {
+    // Build filter for part/lesson
+    const cardFilter: any = {
+      userId,
+      cardProgress: {
+        none: {
+          mode,
         },
       },
+    };
+
+    if (filters?.textbookPart) {
+      cardFilter.textbookPart = filters.textbookPart;
+    }
+    if (filters?.lessonNumber) {
+      cardFilter.lessonNumber = filters.lessonNumber;
+    }
+
+    // Find cards that don't have progress for this mode yet
+    const cards = await prisma.card.findMany({
+      where: cardFilter,
       take: limit,
       orderBy: {
         createdAt: 'asc',

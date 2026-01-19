@@ -10,6 +10,8 @@ export interface CreateCardData {
   examplePinyin?: string;
   exampleEnglish?: string;
   hskLevel?: number;
+  textbookPart?: number;
+  lessonNumber?: number;
   tags?: string[];
 }
 
@@ -21,6 +23,8 @@ export interface ListCardsParams {
   limit?: number;
   tags?: string[];
   hskLevel?: number;
+  textbookPart?: number;
+  lessonNumber?: number;
   search?: string;
 }
 
@@ -37,7 +41,7 @@ export const cardService = {
   },
 
   async listCards(params: ListCardsParams) {
-    const { userId, page = 1, limit = 20, tags, hskLevel, search } = params;
+    const { userId, page = 1, limit = 20, tags, hskLevel, textbookPart, lessonNumber, search } = params;
     const skip = (page - 1) * limit;
 
     const where: any = { userId };
@@ -48,6 +52,14 @@ export const cardService = {
 
     if (hskLevel) {
       where.hskLevel = hskLevel;
+    }
+
+    if (textbookPart) {
+      where.textbookPart = textbookPart;
+    }
+
+    if (lessonNumber) {
+      where.lessonNumber = lessonNumber;
     }
 
     if (search) {

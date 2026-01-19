@@ -92,6 +92,8 @@ class ApiClient {
     limit?: number;
     tags?: string[];
     hskLevel?: number;
+    textbookPart?: number;
+    lessonNumber?: number;
     search?: string;
   }) {
     const queryParams = new URLSearchParams();
@@ -99,6 +101,8 @@ class ApiClient {
     if (params?.limit) queryParams.set('limit', params.limit.toString());
     if (params?.tags) queryParams.set('tags', params.tags.join(','));
     if (params?.hskLevel) queryParams.set('hskLevel', params.hskLevel.toString());
+    if (params?.textbookPart) queryParams.set('textbookPart', params.textbookPart.toString());
+    if (params?.lessonNumber) queryParams.set('lessonNumber', params.lessonNumber.toString());
     if (params?.search) queryParams.set('search', params.search);
 
     return this.request<{
@@ -141,14 +145,26 @@ class ApiClient {
   }
 
   // Study endpoints
-  async getDueCards(mode: QuizMode, limit: number = 20) {
+  async getDueCards(mode: QuizMode, limit: number = 20, filters?: { textbookPart?: number; lessonNumber?: number }) {
+    const queryParams = new URLSearchParams();
+    queryParams.set('mode', mode);
+    queryParams.set('limit', limit.toString());
+    if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
+    if (filters?.lessonNumber) queryParams.set('lessonNumber', filters.lessonNumber.toString());
+
     return this.request<Array<{ cardProgress: CardProgress; card: Card }>>(
-      `/api/study/due?mode=${mode}&limit=${limit}`
+      `/api/study/due?${queryParams}`
     );
   }
 
-  async getNewCards(mode: QuizMode, limit: number = 10) {
-    return this.request<Card[]>(`/api/study/new?mode=${mode}&limit=${limit}`);
+  async getNewCards(mode: QuizMode, limit: number = 10, filters?: { textbookPart?: number; lessonNumber?: number }) {
+    const queryParams = new URLSearchParams();
+    queryParams.set('mode', mode);
+    queryParams.set('limit', limit.toString());
+    if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
+    if (filters?.lessonNumber) queryParams.set('lessonNumber', filters.lessonNumber.toString());
+
+    return this.request<Card[]>(`/api/study/new?${queryParams}`);
   }
 
   async submitReview(data: {

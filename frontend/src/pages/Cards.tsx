@@ -5,14 +5,16 @@ import { api } from '../lib/api';
 export default function Cards() {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedHskLevel, setSelectedHskLevel] = useState<number | null>(null);
+  const [selectedPart, setSelectedPart] = useState<number | null>(1); // Default to Part 1
+  const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['cards', searchTerm, selectedHskLevel],
+    queryKey: ['cards', searchTerm, selectedPart, selectedLesson],
     queryFn: () => api.getCards({
       search: searchTerm,
-      hskLevel: selectedHskLevel || undefined,
+      textbookPart: selectedPart || undefined,
+      lessonNumber: selectedLesson || undefined,
     }),
   });
 
@@ -50,32 +52,58 @@ export default function Cards() {
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
         />
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">HSK Level:</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Part:</span>
           <button
-            onClick={() => setSelectedHskLevel(null)}
+            onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}
             className={`px-3 py-1 rounded-lg transition ${
-              selectedHskLevel === null
+              selectedPart === null
                 ? 'bg-red-600 text-white'
                 : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             }`}
           >
             All
           </button>
-          {[1, 2, 3, 4, 5, 6].map((level) => (
+          <button
+            onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}
+            className={`px-3 py-1 rounded-lg transition ${
+              selectedPart === 1
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            Part 1
+          </button>
+        </div>
+
+        {selectedPart === 1 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-gray-700">Lesson:</span>
             <button
-              key={level}
-              onClick={() => setSelectedHskLevel(level)}
+              onClick={() => setSelectedLesson(null)}
               className={`px-3 py-1 rounded-lg transition ${
-                selectedHskLevel === level
+                selectedLesson === null
                   ? 'bg-red-600 text-white'
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              {level}
+              All
             </button>
-          ))}
-        </div>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
+              <button
+                key={lesson}
+                onClick={() => setSelectedLesson(lesson)}
+                className={`px-3 py-1 rounded-lg transition ${
+                  selectedLesson === lesson
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {lesson}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -86,9 +114,9 @@ export default function Cards() {
             <div key={card.id} className="bg-white p-6 rounded-lg shadow-md">
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1" />
-                {card.hskLevel && (
+                {card.lessonNumber && (
                   <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
-                    HSK {card.hskLevel}
+                    L{card.lessonNumber}
                   </span>
                 )}
               </div>
@@ -132,7 +160,8 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
     pinyinDisplay: '',
     english: '',
     tags: '',
-    hskLevel: '',
+    textbookPart: '1',
+    lessonNumber: '',
   });
   const queryClient = useQueryClient();
 
@@ -153,7 +182,8 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
       english: formData.english,
       englishAlt: [],
       tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      hskLevel: formData.hskLevel ? parseInt(formData.hskLevel) : undefined,
+      textbookPart: formData.textbookPart ? parseInt(formData.textbookPart) : undefined,
+      lessonNumber: formData.lessonNumber ? parseInt(formData.lessonNumber) : undefined,
     });
   };
 
@@ -209,19 +239,30 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">HSK Level (optional)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Textbook Part</label>
             <select
-              value={formData.hskLevel}
-              onChange={(e) => setFormData({ ...formData, hskLevel: e.target.value })}
+              value={formData.textbookPart}
+              onChange={(e) => setFormData({ ...formData, textbookPart: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+            >
+              <option value="1">Part 1</option>
+              <option value="2">Part 2</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Lesson Number</label>
+            <select
+              value={formData.lessonNumber}
+              onChange={(e) => setFormData({ ...formData, lessonNumber: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
             >
               <option value="">None</option>
-              <option value="1">HSK 1</option>
-              <option value="2">HSK 2</option>
-              <option value="3">HSK 3</option>
-              <option value="4">HSK 4</option>
-              <option value="5">HSK 5</option>
-              <option value="6">HSK 6</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
+                <option key={lesson} value={lesson.toString()}>
+                  Lesson {lesson}
+                </option>
+              ))}
             </select>
           </div>
 

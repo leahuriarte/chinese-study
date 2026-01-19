@@ -16,6 +16,8 @@ const quizModes: { value: QuizMode; label: string; description: string }[] = [
 export default function Study() {
   const [mode, setMode] = useState<QuizMode>('hanzi_to_pinyin');
   const [showModeSelector, setShowModeSelector] = useState(true);
+  const [selectedPart, setSelectedPart] = useState<number | null>(1);
+  const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState(false);
@@ -23,14 +25,19 @@ export default function Study() {
   const [startTime, setStartTime] = useState(Date.now());
   const queryClient = useQueryClient();
 
+  const filters = {
+    textbookPart: selectedPart || undefined,
+    lessonNumber: selectedLesson || undefined,
+  };
+
   const { data: dueCardsData, isLoading } = useQuery({
-    queryKey: ['dueCards', mode],
-    queryFn: () => api.getDueCards(mode),
+    queryKey: ['dueCards', mode, selectedPart, selectedLesson],
+    queryFn: () => api.getDueCards(mode, 20, filters),
   });
 
   const { data: newCards } = useQuery({
-    queryKey: ['newCards', mode],
-    queryFn: () => api.getNewCards(mode, 5),
+    queryKey: ['newCards', mode, selectedPart, selectedLesson],
+    queryFn: () => api.getNewCards(mode, 5, filters),
   });
 
   const reviewMutation = useMutation({
@@ -170,6 +177,66 @@ export default function Study() {
     return (
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Choose Study Mode</h1>
+
+        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-xl font-semibold mb-4">Filter by Textbook</h2>
+
+          <div className="mb-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Part:</span>
+              <button
+                onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}
+                className={`px-3 py-1 rounded-lg transition ${
+                  selectedPart === null
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}
+                className={`px-3 py-1 rounded-lg transition ${
+                  selectedPart === 1
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Part 1
+              </button>
+            </div>
+          </div>
+
+          {selectedPart === 1 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Lesson:</span>
+              <button
+                onClick={() => setSelectedLesson(null)}
+                className={`px-3 py-1 rounded-lg transition ${
+                  selectedLesson === null
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All
+              </button>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
+                <button
+                  key={lesson}
+                  onClick={() => setSelectedLesson(lesson)}
+                  className={`px-3 py-1 rounded-lg transition ${
+                    selectedLesson === lesson
+                      ? 'bg-red-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {lesson}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {quizModes.map((quizMode) => (
             <button
@@ -216,16 +283,29 @@ export default function Study() {
       <div className="mb-4 flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold">Study: {currentModeLabel}</h1>
-          <button
-            onClick={changeMode}
-            className="text-sm text-gray-600 hover:text-red-600 transition mt-1"
-          >
-            Change Mode
-          </button>
+          <div className="flex items-center gap-2 mt-1">
+            <button
+              onClick={changeMode}
+              className="text-sm text-gray-600 hover:text-red-600 transition"
+            >
+              Change Mode
+            </button>
+            {(selectedPart || selectedLesson) && (
+              <span className="text-sm text-gray-500">
+                • {selectedPart ? `Part ${selectedPart}` : 'All Parts'}
+                {selectedLesson ? `, Lesson ${selectedLesson}` : ''}
+              </span>
+            )}
+          </div>
         </div>
-        <span className="text-gray-600">
-          Card {currentIndex + 1} of {allCards.length}
-        </span>
+        <div className="text-right">
+          <span className="text-gray-600">
+            Card {currentIndex + 1} of {allCards.length}
+          </span>
+          {currentCard?.lessonNumber && (
+            <div className="text-sm text-blue-600">L{currentCard.lessonNumber}</div>
+          )}
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-lg p-8">
