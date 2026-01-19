@@ -279,10 +279,19 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           {showComparison && (
             <div className="flex flex-col items-center">
               <div
-                className="border-2 border-gray-300 rounded-lg flex items-center justify-center bg-white"
+                className="border-2 border-gray-300 rounded-lg flex items-center justify-center bg-white overflow-hidden"
                 style={{ width: 300, height: 300 }}
               >
-                <span className="text-[200px] leading-none">{card.hanzi}</span>
+                <span
+                  className="leading-none"
+                  style={{
+                    fontSize: card.hanzi.length === 1 ? '200px' :
+                              card.hanzi.length === 2 ? '120px' :
+                              card.hanzi.length === 3 ? '90px' : '70px'
+                  }}
+                >
+                  {card.hanzi}
+                </span>
               </div>
               <span className="text-sm text-gray-500 mt-2">Correct character</span>
             </div>
