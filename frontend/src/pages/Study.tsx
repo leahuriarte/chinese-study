@@ -33,6 +33,7 @@ export default function Study() {
   const [wasCorrect, setWasCorrect] = useState(false);
   const [startTime, setStartTime] = useState(Date.now());
   const [answeredCard, setAnsweredCard] = useState<Card | null>(null);
+  const [wasOverridden, setWasOverridden] = useState(false);
   const queryClient = useQueryClient();
 
   // For SRS mode
@@ -167,6 +168,47 @@ export default function Study() {
     }
   };
 
+  // Smart answer checking - handles multiple meanings separated by ; , /
+  const checkAnswerSmart = (userAnswer: string, correctAnswer: string, quizMode: QuizMode): boolean => {
+    const normalizedUser = userAnswer.toLowerCase().trim();
+    const normalizedCorrect = correctAnswer.toLowerCase().trim();
+
+    // Exact match first
+    if (normalizedUser === normalizedCorrect) {
+      return true;
+    }
+
+    // For English answer modes, check if user's answer matches any part of the meaning
+    if (quizMode === 'hanzi_to_english' || quizMode === 'pinyin_to_english') {
+      // Split by common delimiters: ; , / and check each part
+      const parts = normalizedCorrect.split(/[;,\/]/).map(p => p.trim()).filter(p => p.length > 0);
+
+      // Check if user's answer matches any part
+      for (const part of parts) {
+        if (normalizedUser === part) {
+          return true;
+        }
+        // Also check if the part contains the user's answer as a complete word/phrase
+        // e.g., "to be" should match in "to be; is"
+        if (part === normalizedUser) {
+          return true;
+        }
+      }
+
+      // Check if the user's answer contains all the key words from any part
+      // This helps with slight variations like "the book" vs "book"
+      for (const part of parts) {
+        const partWords = part.split(/\s+/).filter(w => w.length > 2); // ignore small words like "to", "a", "is"
+        const userWords = normalizedUser.split(/\s+/);
+        if (partWords.length > 0 && partWords.every(pw => userWords.some(uw => uw === pw || uw.includes(pw)))) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  };
+
   const processAnswer = (correct: boolean) => {
     if (!currentCard) return;
 
@@ -192,12 +234,31 @@ export default function Study() {
     if (!currentCard) return;
 
     const correctAnswer = getCorrectAnswer(currentCard, mode);
-    const correct = answer.toLowerCase().trim() === correctAnswer.trim();
+    const correct = checkAnswerSmart(answer, correctAnswer, mode);
     processAnswer(correct);
   };
 
   const handleWritingComplete = (correct: boolean) => {
     processAnswer(correct);
+  };
+
+  // Override function - when user says they were actually correct
+  const handleOverrideCorrect = () => {
+    if (!answeredCard) return;
+
+    setWasCorrect(true);
+    setWasOverridden(true);
+
+    // If SRS mode, submit a correction with quality 4 (correct)
+    if (sessionType === 'srs') {
+      const responseTime = Date.now() - startTime;
+      reviewMutation.mutate({
+        cardId: answeredCard.id,
+        mode,
+        quality: 4, // Mark as correct
+        responseTimeMs: responseTime,
+      });
+    }
   };
 
   const handleNext = () => {
@@ -206,6 +267,7 @@ export default function Study() {
     setAnswer('');
     setShowResult(false);
     setAnsweredCard(null);
+    setWasOverridden(false);
 
     if (sessionType === 'srs') {
       setCurrentIndex((prev) => prev + 1);
@@ -263,6 +325,7 @@ export default function Study() {
     setCurrentIndex(0);
     setAnswer('');
     setShowResult(false);
+    setWasOverridden(false);
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
@@ -274,6 +337,7 @@ export default function Study() {
     setAnswer('');
     setShowResult(false);
     setAnsweredCard(null);
+    setWasOverridden(false);
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
@@ -730,6 +794,22 @@ export default function Study() {
                     <span className="text-sm text-green-600">Correct answer:</span>
                     <span className="font-medium text-green-700">{getCorrectAnswer(answeredCard, mode)}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Override button - appears when marked wrong */}
+              {!wasCorrect && !wasOverridden && (
+                <button
+                  onClick={handleOverrideCorrect}
+                  className="w-full py-3 bg-amber-100 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-200 transition text-sm font-medium"
+                >
+                  Actually, I was correct
+                </button>
+              )}
+
+              {wasOverridden && (
+                <div className="text-center text-sm text-green-600 py-2">
+                  Updated to correct
                 </div>
               )}
 

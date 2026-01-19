@@ -20,13 +20,27 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
-  // Stroke order mode setup
+  // Multi-character support for stroke order mode
+  const characters = Array.from(card.hanzi);
+  const [currentCharIndex, setCurrentCharIndex] = useState(0);
+  const [charMistakes, setCharMistakes] = useState<number[]>([]);
+
+  // Reset character index when card changes
+  useEffect(() => {
+    setCurrentCharIndex(0);
+    setCharMistakes([]);
+  }, [card.hanzi]);
+
+  // Stroke order mode setup - now handles single character at a time
   useEffect(() => {
     if (writingMode !== 'stroke_order' || !writerRef.current) return;
 
+    const currentChar = characters[currentCharIndex];
+    if (!currentChar) return;
+
     writerRef.current.innerHTML = '';
 
-    const newWriter = HanziWriter.create(writerRef.current, card.hanzi, {
+    const newWriter = HanziWriter.create(writerRef.current, currentChar, {
       width: 300,
       height: 300,
       padding: 5,
@@ -46,7 +60,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         newWriter.cancelQuiz();
       }
     };
-  }, [card.hanzi, showHint, writingMode]);
+  }, [card.hanzi, showHint, writingMode, currentCharIndex, characters]);
 
   // Freehand mode canvas setup
   useEffect(() => {
@@ -165,10 +179,25 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
 
     writer.quiz({
       onComplete: (summary: any) => {
-        const wasCorrect = summary.totalMistakes === 0;
-        setTimeout(() => {
-          onComplete(wasCorrect);
-        }, 1000);
+        const mistakes = summary.totalMistakes;
+        const newCharMistakes = [...charMistakes, mistakes];
+        setCharMistakes(newCharMistakes);
+
+        // Check if there are more characters to write
+        if (currentCharIndex < characters.length - 1) {
+          // Move to next character after a brief delay
+          setTimeout(() => {
+            setCurrentCharIndex(prev => prev + 1);
+            setIsChecking(false);
+          }, 500);
+        } else {
+          // All characters done - check if any had mistakes
+          const totalMistakes = newCharMistakes.reduce((sum, m) => sum + m, 0);
+          const wasCorrect = totalMistakes === 0;
+          setTimeout(() => {
+            onComplete(wasCorrect);
+          }, 1000);
+        }
       },
       onMistake: () => {
         // Optionally show feedback on mistakes
@@ -181,10 +210,14 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
       if (writer) {
         writer.cancelQuiz();
         setIsChecking(false);
+        // Reset to first character
+        setCurrentCharIndex(0);
+        setCharMistakes([]);
 
-        if (writerRef.current) {
+        const currentChar = characters[0];
+        if (writerRef.current && currentChar) {
           writerRef.current.innerHTML = '';
-          const newWriter = HanziWriter.create(writerRef.current, card.hanzi, {
+          const newWriter = HanziWriter.create(writerRef.current, currentChar, {
             width: 300,
             height: 300,
             padding: 5,
@@ -234,9 +267,16 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     if (writingMode === 'stroke_order') {
       if (writer) {
         writer.showCharacter();
+        // If multi-character, wait then move to next or finish
         setTimeout(() => {
-          onComplete(false);
-        }, 2000);
+          if (currentCharIndex < characters.length - 1) {
+            setCharMistakes(prev => [...prev, 1]); // Count as a mistake since they showed answer
+            setCurrentCharIndex(prev => prev + 1);
+            setIsChecking(false);
+          } else {
+            onComplete(false); // Showing answer counts as incorrect
+          }
+        }, 1500);
       }
     } else {
       setShowComparison(true);
@@ -353,7 +393,35 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   return (
     <div className="flex flex-col items-center">
       <div className="text-4xl mb-6 text-center">{prompt}</div>
-      <p className="text-center text-gray-600 mb-6">Draw the character below</p>
+
+      {/* Character progress indicator for multi-character cards */}
+      {characters.length > 1 && (
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-sm text-gray-500">Character {currentCharIndex + 1} of {characters.length}:</span>
+          <div className="flex gap-1">
+            {characters.map((char, idx) => (
+              <span
+                key={idx}
+                className={`text-2xl px-2 py-1 rounded ${
+                  idx < currentCharIndex
+                    ? 'bg-green-100 text-green-600'
+                    : idx === currentCharIndex
+                    ? 'bg-red-100 text-red-600 font-bold'
+                    : 'bg-gray-100 text-gray-400'
+                }`}
+              >
+                {idx < currentCharIndex ? char : idx === currentCharIndex ? char : '?'}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <p className="text-center text-gray-600 mb-6">
+        {characters.length > 1
+          ? `Draw "${characters[currentCharIndex]}" (character ${currentCharIndex + 1}/${characters.length})`
+          : 'Draw the character below'}
+      </p>
 
       <div
         ref={writerRef}
