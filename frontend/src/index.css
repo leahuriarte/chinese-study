@@ -249,8 +249,8 @@ hr {
 
 /* Selection styling */
 ::selection {
-  background: var(--color-stamp-red-light);
-  color: var(--color-ink);
+  background: var(--color-stamp-red);
+  color: var(--color-paper);
 }
 
 /* Loading animation */
