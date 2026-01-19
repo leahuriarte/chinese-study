@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card, QuizMode } from '../types';
@@ -14,14 +14,20 @@ const quizModes: { value: QuizMode; label: string; description: string; icon: st
 ];
 
 export type WritingMode = 'stroke_order' | 'freehand';
+export type SessionType = 'srs' | 'mastery' | 'quick';
+
+interface CardWithProgress extends Card {
+  correctCount: number;
+  totalAttempts: number;
+}
 
 export default function Study() {
   const [mode, setMode] = useState<QuizMode>('hanzi_to_pinyin');
   const [writingMode, setWritingMode] = useState<WritingMode>('stroke_order');
+  const [sessionType, setSessionType] = useState<SessionType>('srs');
   const [showModeSelector, setShowModeSelector] = useState(true);
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
@@ -29,19 +35,37 @@ export default function Study() {
   const [answeredCard, setAnsweredCard] = useState<Card | null>(null);
   const queryClient = useQueryClient();
 
+  // For SRS mode
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  // For Mastery and Quick modes - local card queue
+  const [cardQueue, setCardQueue] = useState<CardWithProgress[]>([]);
+  const [masteredCards, setMasteredCards] = useState<Set<string>>(new Set());
+  const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
+
   const filters = {
     textbookPart: selectedPart || undefined,
     lessonNumber: selectedLesson || undefined,
   };
 
-  const { data: dueCardsData, isLoading } = useQuery({
+  // SRS mode queries
+  const { data: dueCardsData, isLoading: isLoadingDue } = useQuery({
     queryKey: ['dueCards', mode, selectedPart, selectedLesson],
     queryFn: () => api.getDueCards(mode, 20, filters),
+    enabled: sessionType === 'srs',
   });
 
-  const { data: newCards } = useQuery({
+  const { data: newCards, isLoading: isLoadingNew } = useQuery({
     queryKey: ['newCards', mode, selectedPart, selectedLesson],
     queryFn: () => api.getNewCards(mode, 5, filters),
+    enabled: sessionType === 'srs',
+  });
+
+  // All cards query for Mastery and Quick modes
+  const { data: allCardsData, isLoading: isLoadingAll } = useQuery({
+    queryKey: ['allCards', selectedPart, selectedLesson],
+    queryFn: () => api.getCards(filters),
+    enabled: sessionType !== 'srs',
   });
 
   const reviewMutation = useMutation({
@@ -52,23 +76,48 @@ export default function Study() {
       responseTimeMs: number;
     }) => api.submitReview(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dueCards'] });
-      queryClient.invalidateQueries({ queryKey: ['newCards'] });
+      if (sessionType === 'srs') {
+        queryClient.invalidateQueries({ queryKey: ['dueCards'] });
+        queryClient.invalidateQueries({ queryKey: ['newCards'] });
+      }
       queryClient.invalidateQueries({ queryKey: ['stats'] });
     },
   });
 
-  // Combine due cards and new cards
-  const allCards: Card[] = [
+  // SRS mode cards
+  const srsCards: Card[] = sessionType === 'srs' ? [
     ...(dueCardsData?.map((d) => d.card) || []),
     ...(newCards || []),
-  ];
+  ] : [];
 
-  const currentCard = allCards[currentIndex];
+  const isLoading = sessionType === 'srs'
+    ? (isLoadingDue || isLoadingNew)
+    : isLoadingAll;
+
+  // Get current card based on session type
+  const getCurrentCard = useCallback((): Card | null => {
+    if (sessionType === 'srs') {
+      return srsCards[currentIndex] || null;
+    } else {
+      return cardQueue[0] || null;
+    }
+  }, [sessionType, srsCards, currentIndex, cardQueue]);
+
+  const currentCard = getCurrentCard();
+
+  // Initialize card queue for Mastery/Quick modes
+  useEffect(() => {
+    if (sessionType !== 'srs' && allCardsData && cardQueue.length === 0 && !showModeSelector) {
+      const shuffled = [...allCardsData]
+        .sort(() => Math.random() - 0.5)
+        .map(card => ({ ...card, correctCount: 0, totalAttempts: 0 }));
+      setCardQueue(shuffled);
+    }
+  }, [sessionType, allCardsData, cardQueue.length, showModeSelector]);
 
   useEffect(() => {
     setStartTime(Date.now());
-  }, [currentIndex]);
+  }, [currentCard?.id]);
 
   const getCorrectAnswer = (card: Card, quizMode: QuizMode): string => {
     switch (quizMode) {
@@ -118,53 +167,94 @@ export default function Study() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const processAnswer = (correct: boolean) => {
     if (!currentCard) return;
 
     const responseTime = Date.now() - startTime;
-    const correctAnswer = getCorrectAnswer(currentCard, mode);
-    const correct = answer.toLowerCase().trim() === correctAnswer.trim();
-
-    // Save the card being answered before showing results
     setAnsweredCard(currentCard);
     setWasCorrect(correct);
     setShowResult(true);
 
-    // Submit review
-    const quality = correct ? 4 : 2; // 4 = good, 2 = failed
-    reviewMutation.mutate({
-      cardId: currentCard.id,
-      mode,
-      quality,
-      responseTimeMs: responseTime,
-    });
+    // Only submit to SRS for SRS mode
+    if (sessionType === 'srs') {
+      const quality = correct ? 4 : 2;
+      reviewMutation.mutate({
+        cardId: currentCard.id,
+        mode,
+        quality,
+        responseTimeMs: responseTime,
+      });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentCard) return;
+
+    const correctAnswer = getCorrectAnswer(currentCard, mode);
+    const correct = answer.toLowerCase().trim() === correctAnswer.trim();
+    processAnswer(correct);
+  };
+
+  const handleWritingComplete = (correct: boolean) => {
+    processAnswer(correct);
   };
 
   const handleNext = () => {
+    if (!currentCard) return;
+
     setAnswer('');
     setShowResult(false);
     setAnsweredCard(null);
-    setCurrentIndex((prev) => prev + 1);
-  };
 
-  const handleWritingComplete = (wasCorrect: boolean) => {
-    if (!currentCard) return;
+    if (sessionType === 'srs') {
+      setCurrentIndex((prev) => prev + 1);
+    } else if (sessionType === 'quick') {
+      // Quick mode: just mark as completed and move on
+      setCompletedCards(prev => new Set(prev).add(currentCard.id));
+      setCardQueue(prev => prev.slice(1));
+    } else if (sessionType === 'mastery') {
+      // Mastery mode: smart reordering based on correct count
+      const currentCardWithProgress = cardQueue[0];
 
-    const responseTime = Date.now() - startTime;
-    // Save the card being answered before showing results
-    setAnsweredCard(currentCard);
-    setWasCorrect(wasCorrect);
-    setShowResult(true);
+      if (wasCorrect) {
+        const newCorrectCount = currentCardWithProgress.correctCount + 1;
 
-    // Submit review
-    const quality = wasCorrect ? 4 : 2;
-    reviewMutation.mutate({
-      cardId: currentCard.id,
-      mode,
-      quality,
-      responseTimeMs: responseTime,
-    });
+        if (newCorrectCount >= 3) {
+          // Card mastered! Remove from queue
+          setMasteredCards(prev => new Set(prev).add(currentCard.id));
+          setCardQueue(prev => prev.slice(1));
+        } else {
+          // Reinsert card further back based on correct count
+          // 1st correct: 3-5 cards back
+          // 2nd correct: 6-10 cards back
+          const minPosition = newCorrectCount === 1 ? 3 : 6;
+          const maxPosition = newCorrectCount === 1 ? 5 : 10;
+          const position = Math.min(
+            minPosition + Math.floor(Math.random() * (maxPosition - minPosition + 1)),
+            cardQueue.length - 1
+          );
+
+          setCardQueue(prev => {
+            const updated = { ...prev[0], correctCount: newCorrectCount, totalAttempts: prev[0].totalAttempts + 1 };
+            const rest = prev.slice(1);
+            const newQueue = [...rest];
+            newQueue.splice(Math.max(0, position - 1), 0, updated);
+            return newQueue;
+          });
+        }
+      } else {
+        // Wrong answer: reset correct count and put near front (position 1-2)
+        const position = 1 + Math.floor(Math.random() * 2);
+        setCardQueue(prev => {
+          const updated = { ...prev[0], correctCount: 0, totalAttempts: prev[0].totalAttempts + 1 };
+          const rest = prev.slice(1);
+          const newQueue = [...rest];
+          newQueue.splice(Math.min(position, newQueue.length), 0, updated);
+          return newQueue;
+        });
+      }
+    }
   };
 
   const startStudying = (selectedMode: QuizMode) => {
@@ -173,6 +263,9 @@ export default function Study() {
     setCurrentIndex(0);
     setAnswer('');
     setShowResult(false);
+    setCardQueue([]);
+    setMasteredCards(new Set());
+    setCompletedCards(new Set());
   };
 
   const changeMode = () => {
@@ -181,6 +274,33 @@ export default function Study() {
     setAnswer('');
     setShowResult(false);
     setAnsweredCard(null);
+    setCardQueue([]);
+    setMasteredCards(new Set());
+    setCompletedCards(new Set());
+  };
+
+  // Calculate progress
+  const getProgress = () => {
+    if (sessionType === 'srs') {
+      return { current: currentIndex, total: srsCards.length };
+    } else if (sessionType === 'quick') {
+      const total = (allCardsData?.length || 0);
+      return { current: completedCards.size, total };
+    } else {
+      const total = (allCardsData?.length || 0);
+      return { current: masteredCards.size, total };
+    }
+  };
+
+  const progress = getProgress();
+
+  // Check if session is complete
+  const isSessionComplete = () => {
+    if (sessionType === 'srs') {
+      return currentIndex >= srsCards.length && srsCards.length > 0;
+    } else {
+      return cardQueue.length === 0 && (masteredCards.size > 0 || completedCards.size > 0);
+    }
   };
 
   if (showModeSelector) {
@@ -192,6 +312,83 @@ export default function Study() {
             Study Mode
           </h1>
           <p className="text-gray-600">Choose how you want to practice today</p>
+        </div>
+
+        {/* Session Type Selection */}
+        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50 mb-8">
+          <h2 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Session Type
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => setSessionType('srs')}
+              className={`relative p-4 rounded-xl transition-all text-left ${
+                sessionType === 'srs'
+                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {sessionType === 'srs' && (
+                <div className="absolute top-3 right-3">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+              <div className="text-2xl mb-2">🧠</div>
+              <div className="font-semibold">Spaced Repetition</div>
+              <div className={`text-sm ${sessionType === 'srs' ? 'text-red-100' : 'text-gray-500'}`}>
+                Review due cards with SRS algorithm
+              </div>
+            </button>
+
+            <button
+              onClick={() => setSessionType('mastery')}
+              className={`relative p-4 rounded-xl transition-all text-left ${
+                sessionType === 'mastery'
+                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {sessionType === 'mastery' && (
+                <div className="absolute top-3 right-3">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+              <div className="text-2xl mb-2">🎯</div>
+              <div className="font-semibold">Mastery Mode</div>
+              <div className={`text-sm ${sessionType === 'mastery' ? 'text-red-100' : 'text-gray-500'}`}>
+                Get each card right 3x with smart spacing
+              </div>
+            </button>
+
+            <button
+              onClick={() => setSessionType('quick')}
+              className={`relative p-4 rounded-xl transition-all text-left ${
+                sessionType === 'quick'
+                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
+                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+              }`}
+            >
+              {sessionType === 'quick' && (
+                <div className="absolute top-3 right-3">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+              <div className="text-2xl mb-2">⚡</div>
+              <div className="font-semibold">Quick Review</div>
+              <div className={`text-sm ${sessionType === 'quick' ? 'text-red-100' : 'text-gray-500'}`}>
+                Go through all cards once
+              </div>
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -315,7 +512,7 @@ export default function Study() {
         </div>
 
         {/* Quiz Mode Cards */}
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">Select Study Mode</h2>
+        <h2 className="text-lg font-semibold mb-4 text-gray-800">Select Quiz Type</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {quizModes.map((quizMode) => (
             <button
@@ -352,7 +549,8 @@ export default function Study() {
     );
   }
 
-  if (!currentCard) {
+  if (isSessionComplete() || (!currentCard && !isLoading)) {
+    const sessionLabel = sessionType === 'srs' ? 'Spaced Repetition' : sessionType === 'mastery' ? 'Mastery' : 'Quick Review';
     return (
       <div className="max-w-2xl mx-auto text-center">
         <div className="bg-white/70 backdrop-blur-sm p-12 rounded-3xl shadow-lg border border-white/50">
@@ -361,15 +559,22 @@ export default function Study() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold mb-3 text-gray-800">All Done!</h1>
-          <p className="text-lg text-gray-600 mb-8">
-            You've completed all your reviews for this mode.
+          <h1 className="text-3xl font-bold mb-3 text-gray-800">
+            {sessionType === 'mastery' ? 'All Cards Mastered!' : 'All Done!'}
+          </h1>
+          <p className="text-lg text-gray-600 mb-4">
+            {sessionType === 'srs' && "You've completed all your due reviews."}
+            {sessionType === 'mastery' && `You got all ${masteredCards.size} cards correct 3 times each!`}
+            {sessionType === 'quick' && `You reviewed all ${completedCards.size} cards.`}
+          </p>
+          <p className="text-sm text-gray-500 mb-8">
+            Session: {sessionLabel}
           </p>
           <button
             onClick={changeMode}
             className="px-8 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
           >
-            Try Another Mode
+            Start New Session
           </button>
         </div>
       </div>
@@ -377,8 +582,14 @@ export default function Study() {
   }
 
   const currentModeLabel = quizModes.find((m) => m.value === mode)?.label || mode;
-  const prompt = getPrompt(currentCard, mode);
+  const prompt = currentCard ? getPrompt(currentCard, mode) : '';
   const placeholder = getPlaceholder(mode);
+  const sessionLabel = sessionType === 'srs' ? 'SRS' : sessionType === 'mastery' ? 'Mastery' : 'Quick';
+
+  // Get mastery info for current card
+  const currentCardProgress = sessionType === 'mastery' && cardQueue[0]
+    ? cardQueue[0]
+    : null;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -394,8 +605,11 @@ export default function Study() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-              Change Mode
+              Back
             </button>
+            <span className="text-sm px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-medium">
+              {sessionLabel}
+            </span>
             {(selectedPart || selectedLesson) && (
               <span className="text-sm text-gray-400">
                 Part {selectedPart}{selectedLesson ? `, L${selectedLesson}` : ''}
@@ -404,10 +618,26 @@ export default function Study() {
           </div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-medium text-gray-500">Progress</div>
-          <div className="text-lg font-bold text-gray-800">
-            {currentIndex + 1} / {allCards.length}
+          <div className="text-sm font-medium text-gray-500">
+            {sessionType === 'mastery' ? 'Mastered' : 'Progress'}
           </div>
+          <div className="text-lg font-bold text-gray-800">
+            {progress.current} / {progress.total}
+          </div>
+          {sessionType === 'mastery' && currentCardProgress && (
+            <div className="flex gap-1 justify-end mt-1">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className={`w-2 h-2 rounded-full ${
+                    i < currentCardProgress.correctCount
+                      ? 'bg-green-500'
+                      : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -415,13 +645,13 @@ export default function Study() {
       <div className="h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
         <div
           className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-300"
-          style={{ width: `${((currentIndex) / allCards.length) * 100}%` }}
+          style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
         />
       </div>
 
       {/* Main Card */}
       <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
-        {!showResult ? (
+        {!showResult && currentCard ? (
           mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' ? (
             <WritingQuiz
               card={currentCard}
@@ -474,6 +704,13 @@ export default function Study() {
               <div className="text-2xl font-bold">
                 {wasCorrect ? 'Correct!' : 'Incorrect'}
               </div>
+              {sessionType === 'mastery' && wasCorrect && currentCardProgress && (
+                <div className="text-sm text-gray-500 mt-2">
+                  {currentCardProgress.correctCount + 1 >= 3
+                    ? '🎉 Card mastered!'
+                    : `${currentCardProgress.correctCount + 1}/3 correct`}
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 mb-8">
