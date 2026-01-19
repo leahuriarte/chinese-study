@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@theme {
+  --color-cream: #f7f3eb;
+  --color-paper: #faf6ee;
+  --color-stamp-red: #c54b3c;
+  --color-stamp-red-dark: #a33d31;
+  --color-stamp-red-light: #e8d4d0;
+  --color-ink: #2c2420;
+  --color-ink-light: #5c5450;
+  --color-border: #d4c8b8;
+  --color-grid: #e8e0d4;
+}
+
 /* Import distinctive fonts */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
 
