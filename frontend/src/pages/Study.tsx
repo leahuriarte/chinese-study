@@ -116,7 +116,7 @@ export default function Study() {
     switch (quizMode) {
       case 'hanzi_to_pinyin':
       case 'english_to_pinyin':
-        return card.pinyin.toLowerCase();
+        return card.pinyinDisplay.toLowerCase();
       case 'hanzi_to_english':
       case 'pinyin_to_english':
         return card.english.toLowerCase();
@@ -160,12 +160,22 @@ export default function Study() {
     }
   };
 
-  const checkAnswerSmart = (userAnswer: string, correctAnswer: string, quizMode: QuizMode): boolean => {
+  const checkAnswerSmart = (userAnswer: string, correctAnswer: string, quizMode: QuizMode, card: Card): boolean => {
     const normalizedUser = userAnswer.toLowerCase().trim();
     const normalizedCorrect = correctAnswer.toLowerCase().trim();
 
     if (normalizedUser === normalizedCorrect) {
       return true;
+    }
+
+    // For pinyin modes, accept both tone marks (pinyinDisplay) and tone numbers (pinyin)
+    if (quizMode === 'hanzi_to_pinyin' || quizMode === 'english_to_pinyin') {
+      const pinyinWithMarks = card.pinyinDisplay.toLowerCase().trim();
+      const pinyinWithNumbers = card.pinyin.toLowerCase().trim();
+
+      if (normalizedUser === pinyinWithMarks || normalizedUser === pinyinWithNumbers) {
+        return true;
+      }
     }
 
     if (quizMode === 'hanzi_to_english' || quizMode === 'pinyin_to_english') {
@@ -216,7 +226,7 @@ export default function Study() {
     if (!currentCard) return;
 
     const correctAnswer = getCorrectAnswer(currentCard, mode);
-    const correct = checkAnswerSmart(answer, correctAnswer, mode);
+    const correct = checkAnswerSmart(answer, correctAnswer, mode, currentCard);
     processAnswer(correct);
   };
 
@@ -747,20 +757,20 @@ function SessionTypeButton({
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 text-left transition-all border ${
+      className={`relative p-4 text-left transition-all border-2 ${
         active
-          ? 'bg-stamp-red border-stamp-red text-paper'
-          : 'bg-paper border-border text-ink hover:border-ink'
+          ? 'bg-stamp-red border-stamp-red text-white'
+          : 'bg-paper border-border text-ink hover:border-stamp-red'
       }`}
     >
       {active && (
-        <div className="absolute top-2 right-2 w-4 h-4 border border-paper flex items-center justify-center text-xs">
+        <div className="absolute top-2 right-2 w-4 h-4 border border-white flex items-center justify-center text-xs text-white">
           ✓
         </div>
       )}
-      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-paper' : 'text-stamp-red'}`}>{icon}</div>
-      <div className="font-display font-semibold">{title}</div>
-      <div className={`text-xs mt-1 ${active ? 'text-stamp-red-light' : 'text-ink-light'}`}>
+      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-white' : 'text-stamp-red'}`}>{icon}</div>
+      <div className={`font-display font-semibold ${active ? 'text-white' : 'text-ink'}`}>{title}</div>
+      <div className={`text-xs mt-1 ${active ? 'text-white/70' : 'text-ink-light'}`}>
         {description}
       </div>
     </button>
@@ -783,20 +793,20 @@ function WritingModeButton({
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 text-left transition-all border ${
+      className={`relative p-4 text-left transition-all border-2 ${
         active
-          ? 'bg-stamp-red border-stamp-red text-paper'
-          : 'bg-paper border-border text-ink hover:border-ink'
+          ? 'bg-stamp-red border-stamp-red text-white'
+          : 'bg-paper border-border text-ink hover:border-stamp-red'
       }`}
     >
       {active && (
-        <div className="absolute top-2 right-2 w-4 h-4 border border-paper flex items-center justify-center text-xs">
+        <div className="absolute top-2 right-2 w-4 h-4 border border-white flex items-center justify-center text-xs text-white">
           ✓
         </div>
       )}
-      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-paper' : 'text-stamp-red'}`}>{icon}</div>
-      <div className="font-display font-semibold">{title}</div>
-      <div className={`text-xs mt-1 ${active ? 'text-stamp-red-light' : 'text-ink-light'}`}>
+      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-white' : 'text-stamp-red'}`}>{icon}</div>
+      <div className={`font-display font-semibold ${active ? 'text-white' : 'text-ink'}`}>{title}</div>
+      <div className={`text-xs mt-1 ${active ? 'text-white/70' : 'text-ink-light'}`}>
         {description}
       </div>
     </button>
