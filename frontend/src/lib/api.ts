@@ -35,10 +35,18 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers,
+      });
+    } catch (error) {
+      // Network-level errors (Safari "Load failed", CORS issues, timeouts)
+      const message = error instanceof Error ? error.message : 'Network error';
+      console.error(`Fetch failed for ${endpoint}:`, message);
+      throw new Error(`Network error: ${message}. Please check your connection and try again.`);
+    }
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));

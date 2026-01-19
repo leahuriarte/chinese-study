@@ -21,9 +21,13 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    return callback(null, false);
+    // Return error for disallowed origins instead of silent rejection
+    return callback(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400, // Cache preflight for 24 hours
 }));
 app.use(express.json());
 
