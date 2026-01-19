@@ -26,9 +26,9 @@ export default function Home() {
       {/* Hero Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 bg-clip-text text-transparent">
-          Welcome Back
+          Welcome Back 🐯
         </h1>
-        <p className="text-xl text-gray-600">Ready to continue your Chinese learning journey?</p>
+        <p className="text-xl text-gray-600"> 你覺得中文難不難？</p>
       </div>
 
       {/* Stats Cards */}
@@ -108,7 +108,7 @@ export default function Home() {
               </svg>
               <h2 className="text-2xl font-bold">Start Studying</h2>
             </div>
-            <p className="text-red-100">Review your cards with spaced repetition</p>
+            <p className="text-red-100">Review your cards</p>
             {totalDue > 0 && (
               <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-sm">
                 <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>

@@ -15,6 +15,7 @@ export default function Cards() {
       search: searchTerm,
       textbookPart: selectedPart || undefined,
       lessonNumber: selectedLesson || undefined,
+      limit: 500, // Fetch all cards, not just 20
     }),
   });
 

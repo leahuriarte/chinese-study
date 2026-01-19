@@ -65,7 +65,7 @@ export default function Study() {
   // All cards query for Mastery and Quick modes
   const { data: allCardsData, isLoading: isLoadingAll } = useQuery({
     queryKey: ['allCards', selectedPart, selectedLesson],
-    queryFn: () => api.getCards(filters),
+    queryFn: () => api.getCards({ ...filters, limit: 500 }), // Fetch all cards, not just 20
     enabled: sessionType !== 'srs',
   });
 
