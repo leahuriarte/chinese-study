@@ -20,18 +20,15 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
 
-  // Multi-character support for stroke order mode
   const characters = Array.from(card.hanzi);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [charMistakes, setCharMistakes] = useState<number[]>([]);
 
-  // Reset character index when card changes
   useEffect(() => {
     setCurrentCharIndex(0);
     setCharMistakes([]);
   }, [card.hanzi]);
 
-  // Stroke order mode setup - now handles single character at a time
   useEffect(() => {
     if (writingMode !== 'stroke_order' || !writerRef.current) return;
 
@@ -48,9 +45,9 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
       showCharacter: false,
       highlightOnComplete: true,
       drawingWidth: 20,
-      strokeColor: '#dc2626',
-      outlineColor: '#e5e7eb',
-      radicalColor: '#dc2626',
+      strokeColor: '#c54b3c',
+      outlineColor: '#d4c8b8',
+      radicalColor: '#c54b3c',
     });
 
     setWriter(newWriter);
@@ -62,7 +59,6 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     };
   }, [card.hanzi, showHint, writingMode, currentCharIndex, characters]);
 
-  // Freehand mode canvas setup
   useEffect(() => {
     if (writingMode !== 'freehand' || !canvasRef.current) return;
 
@@ -70,22 +66,19 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set up high DPI canvas
     const dpr = window.devicePixelRatio || 1;
     canvas.width = 300 * dpr;
     canvas.height = 300 * dpr;
     ctx.scale(dpr, dpr);
 
-    // Clear and set up
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#faf6ee';
     ctx.fillRect(0, 0, 300, 300);
-    ctx.strokeStyle = '#dc2626';
+    ctx.strokeStyle = '#c54b3c';
     ctx.lineWidth = 8;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    // Draw grid lines
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = '#d4c8b8';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(150, 0);
@@ -94,8 +87,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     ctx.lineTo(300, 150);
     ctx.stroke();
 
-    // Reset for drawing
-    ctx.strokeStyle = '#dc2626';
+    ctx.strokeStyle = '#c54b3c';
     ctx.lineWidth = 8;
   }, [writingMode, card.hanzi]);
 
@@ -183,15 +175,12 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         const newCharMistakes = [...charMistakes, mistakes];
         setCharMistakes(newCharMistakes);
 
-        // Check if there are more characters to write
         if (currentCharIndex < characters.length - 1) {
-          // Move to next character after a brief delay
           setTimeout(() => {
             setCurrentCharIndex(prev => prev + 1);
             setIsChecking(false);
           }, 500);
         } else {
-          // All characters done - check if any had mistakes
           const totalMistakes = newCharMistakes.reduce((sum, m) => sum + m, 0);
           const wasCorrect = totalMistakes === 0;
           setTimeout(() => {
@@ -199,9 +188,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           }, 1000);
         }
       },
-      onMistake: () => {
-        // Optionally show feedback on mistakes
-      },
+      onMistake: () => {},
     });
   };
 
@@ -210,7 +197,6 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
       if (writer) {
         writer.cancelQuiz();
         setIsChecking(false);
-        // Reset to first character
         setCurrentCharIndex(0);
         setCharMistakes([]);
 
@@ -225,15 +211,14 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
             showCharacter: false,
             highlightOnComplete: true,
             drawingWidth: 20,
-            strokeColor: '#dc2626',
-            outlineColor: '#e5e7eb',
-            radicalColor: '#dc2626',
+            strokeColor: '#c54b3c',
+            outlineColor: '#d4c8b8',
+            radicalColor: '#c54b3c',
           });
           setWriter(newWriter);
         }
       }
     } else {
-      // Reset freehand canvas
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
       if (!ctx || !canvas) return;
@@ -242,11 +227,10 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(dpr, dpr);
 
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#faf6ee';
       ctx.fillRect(0, 0, 300, 300);
 
-      // Redraw grid
-      ctx.strokeStyle = '#e5e7eb';
+      ctx.strokeStyle = '#d4c8b8';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(150, 0);
@@ -255,7 +239,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
       ctx.lineTo(300, 150);
       ctx.stroke();
 
-      ctx.strokeStyle = '#dc2626';
+      ctx.strokeStyle = '#c54b3c';
       ctx.lineWidth = 8;
 
       setHasDrawn(false);
@@ -267,14 +251,13 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     if (writingMode === 'stroke_order') {
       if (writer) {
         writer.showCharacter();
-        // If multi-character, wait then move to next or finish
         setTimeout(() => {
           if (currentCharIndex < characters.length - 1) {
-            setCharMistakes(prev => [...prev, 1]); // Count as a mistake since they showed answer
+            setCharMistakes(prev => [...prev, 1]);
             setCurrentCharIndex(prev => prev + 1);
             setIsChecking(false);
           } else {
-            onComplete(false); // Showing answer counts as incorrect
+            onComplete(false);
           }
         }, 1500);
       }
@@ -294,8 +277,11 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   if (writingMode === 'freehand') {
     return (
       <div className="flex flex-col items-center">
-        <div className="text-4xl mb-6 text-center">{prompt}</div>
-        <p className="text-center text-gray-600 mb-6">Draw the character freely</p>
+        <div className="text-center mb-6">
+          <span className="field-label mb-4 inline-block">Prompt</span>
+          <div className="text-3xl font-display text-ink mt-4">{prompt}</div>
+        </div>
+        <p className="text-center text-ink-light text-sm mb-6">Draw the character freely</p>
 
         <div className="flex gap-6 items-start">
           <div className="flex flex-col items-center">
@@ -303,7 +289,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
               ref={canvasRef}
               width={300}
               height={300}
-              className="border-2 border-gray-300 rounded-lg cursor-crosshair touch-none"
+              className="border border-border cursor-crosshair touch-none bg-paper"
               style={{ width: 300, height: 300 }}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
@@ -313,17 +299,17 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
               onTouchMove={handleCanvasTouchMove}
               onTouchEnd={handleCanvasMouseUp}
             />
-            <span className="text-sm text-gray-500 mt-2">Your drawing</span>
+            <span className="text-xs text-ink-light tracking-wider uppercase mt-2">Your drawing</span>
           </div>
 
           {showComparison && (
             <div className="flex flex-col items-center">
               <div
-                className="border-2 border-gray-300 rounded-lg flex items-center justify-center bg-white overflow-hidden"
+                className="border border-border flex items-center justify-center bg-paper overflow-hidden"
                 style={{ width: 300, height: 300 }}
               >
                 <span
-                  className="leading-none"
+                  className="leading-none font-chinese text-stamp-red"
                   style={{
                     fontSize: card.hanzi.length === 1 ? '200px' :
                               card.hanzi.length === 2 ? '120px' :
@@ -333,7 +319,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
                   {card.hanzi}
                 </span>
               </div>
-              <span className="text-sm text-gray-500 mt-2">Correct character</span>
+              <span className="text-xs text-ink-light tracking-wider uppercase mt-2">Correct character</span>
             </div>
           )}
         </div>
@@ -344,37 +330,37 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
               <button
                 onClick={handleShowAnswer}
                 disabled={!hasDrawn}
-                className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                className="vintage-btn vintage-btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Compare with Answer
               </button>
               <button
                 onClick={handleReset}
-                className="w-full py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                className="vintage-btn w-full"
               >
                 Clear & Restart
               </button>
             </>
           ) : (
             <>
-              <p className="text-center text-gray-700 font-medium">Did you get it right?</p>
+              <p className="text-center text-ink text-sm">Did you get it right?</p>
               <div className="flex gap-3">
                 <button
                   onClick={handleFreehandCorrect}
-                  className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg font-semibold"
+                  className="flex-1 py-3 bg-green-600 text-paper border-2 border-green-600 text-xs tracking-wider uppercase hover:bg-green-700 hover:border-green-700 transition"
                 >
                   Yes, Correct
                 </button>
                 <button
                   onClick={handleFreehandIncorrect}
-                  className="flex-1 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-lg font-semibold"
+                  className="vintage-btn vintage-btn-primary flex-1"
                 >
                   No, Incorrect
                 </button>
               </div>
               <button
                 onClick={handleReset}
-                className="w-full py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                className="vintage-btn w-full"
               >
                 Try Again
               </button>
@@ -382,7 +368,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           )}
         </div>
 
-        <p className="text-sm text-gray-500 mt-4 text-center">
+        <p className="text-xs text-ink-light mt-4 text-center tracking-wider">
           Draw the character, then compare with the answer and self-assess.
         </p>
       </div>
@@ -392,22 +378,27 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   // Stroke order mode
   return (
     <div className="flex flex-col items-center">
-      <div className="text-4xl mb-6 text-center">{prompt}</div>
+      <div className="text-center mb-6">
+        <span className="field-label mb-4 inline-block">Prompt</span>
+        <div className="text-3xl font-display text-ink mt-4">{prompt}</div>
+      </div>
 
       {/* Character progress indicator for multi-character cards */}
       {characters.length > 1 && (
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-sm text-gray-500">Character {currentCharIndex + 1} of {characters.length}:</span>
+          <span className="text-xs text-ink-light tracking-wider uppercase">
+            Character {currentCharIndex + 1} of {characters.length}:
+          </span>
           <div className="flex gap-1">
             {characters.map((char, idx) => (
               <span
                 key={idx}
-                className={`text-2xl px-2 py-1 rounded ${
+                className={`text-xl px-2 py-1 font-chinese ${
                   idx < currentCharIndex
-                    ? 'bg-green-100 text-green-600'
+                    ? 'bg-green-100 text-green-600 border border-green-200'
                     : idx === currentCharIndex
-                    ? 'bg-red-100 text-red-600 font-bold'
-                    : 'bg-gray-100 text-gray-400'
+                    ? 'bg-stamp-red-light text-stamp-red border border-stamp-red'
+                    : 'bg-cream text-border border border-border'
                 }`}
               >
                 {idx < currentCharIndex ? char : idx === currentCharIndex ? char : '?'}
@@ -417,7 +408,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         </div>
       )}
 
-      <p className="text-center text-gray-600 mb-6">
+      <p className="text-center text-ink-light text-sm mb-6">
         {characters.length > 1
           ? `Draw "${characters[currentCharIndex]}" (character ${currentCharIndex + 1}/${characters.length})`
           : 'Draw the character below'}
@@ -425,7 +416,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
 
       <div
         ref={writerRef}
-        className="border-2 border-gray-300 rounded-lg mb-6"
+        className="border border-border mb-6 bg-paper"
         style={{ width: 300, height: 300 }}
       />
 
@@ -434,20 +425,20 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           <>
             <button
               onClick={handleQuiz}
-              className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-lg font-semibold"
+              className="vintage-btn vintage-btn-primary w-full"
             >
               Start Writing Quiz
             </button>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowHint(!showHint)}
-                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                className="vintage-btn flex-1"
               >
                 {showHint ? 'Hide Outline' : 'Show Outline'}
               </button>
               <button
                 onClick={handleShowAnswer}
-                className="flex-1 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                className="vintage-btn flex-1"
               >
                 Show Answer
               </button>
@@ -456,14 +447,14 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         ) : (
           <button
             onClick={handleReset}
-            className="w-full py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            className="vintage-btn w-full"
           >
             Reset
           </button>
         )}
       </div>
 
-      <p className="text-sm text-gray-500 mt-4 text-center">
+      <p className="text-xs text-ink-light mt-4 text-center tracking-wider">
         Draw the strokes in the correct order. The system will check your strokes automatically.
       </p>
     </div>

@@ -36,10 +36,7 @@ export default function Study() {
   const [wasOverridden, setWasOverridden] = useState(false);
   const queryClient = useQueryClient();
 
-  // For SRS mode
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // For Mastery and Quick modes - local card queue
   const [cardQueue, setCardQueue] = useState<CardWithProgress[]>([]);
   const [masteredCards, setMasteredCards] = useState<Set<string>>(new Set());
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
@@ -49,7 +46,6 @@ export default function Study() {
     lessonNumber: selectedLesson || undefined,
   };
 
-  // SRS mode queries
   const { data: dueCardsData, isLoading: isLoadingDue } = useQuery({
     queryKey: ['dueCards', mode, selectedPart, selectedLesson],
     queryFn: () => api.getDueCards(mode, 20, filters),
@@ -62,10 +58,9 @@ export default function Study() {
     enabled: sessionType === 'srs',
   });
 
-  // All cards query for Mastery and Quick modes
   const { data: allCardsData, isLoading: isLoadingAll } = useQuery({
     queryKey: ['allCards', selectedPart, selectedLesson],
-    queryFn: () => api.getCards({ ...filters, limit: 500 }), // Fetch all cards, not just 20
+    queryFn: () => api.getCards({ ...filters, limit: 500 }),
     enabled: sessionType !== 'srs',
   });
 
@@ -85,7 +80,6 @@ export default function Study() {
     },
   });
 
-  // SRS mode cards
   const srsCards: Card[] = sessionType === 'srs' ? [
     ...(dueCardsData?.map((d) => d.card) || []),
     ...(newCards || []),
@@ -95,7 +89,6 @@ export default function Study() {
     ? (isLoadingDue || isLoadingNew)
     : isLoadingAll;
 
-  // Get current card based on session type
   const getCurrentCard = useCallback((): Card | null => {
     if (sessionType === 'srs') {
       return srsCards[currentIndex] || null;
@@ -106,7 +99,6 @@ export default function Study() {
 
   const currentCard = getCurrentCard();
 
-  // Initialize card queue for Mastery/Quick modes
   useEffect(() => {
     if (sessionType !== 'srs' && allCardsData?.cards && cardQueue.length === 0 && !showModeSelector) {
       const shuffled = [...allCardsData.cards]
@@ -168,37 +160,28 @@ export default function Study() {
     }
   };
 
-  // Smart answer checking - handles multiple meanings separated by ; , /
   const checkAnswerSmart = (userAnswer: string, correctAnswer: string, quizMode: QuizMode): boolean => {
     const normalizedUser = userAnswer.toLowerCase().trim();
     const normalizedCorrect = correctAnswer.toLowerCase().trim();
 
-    // Exact match first
     if (normalizedUser === normalizedCorrect) {
       return true;
     }
 
-    // For English answer modes, check if user's answer matches any part of the meaning
     if (quizMode === 'hanzi_to_english' || quizMode === 'pinyin_to_english') {
-      // Split by common delimiters: ; , / and check each part
       const parts = normalizedCorrect.split(/[;,\/]/).map(p => p.trim()).filter(p => p.length > 0);
 
-      // Check if user's answer matches any part
       for (const part of parts) {
         if (normalizedUser === part) {
           return true;
         }
-        // Also check if the part contains the user's answer as a complete word/phrase
-        // e.g., "to be" should match in "to be; is"
         if (part === normalizedUser) {
           return true;
         }
       }
 
-      // Check if the user's answer contains all the key words from any part
-      // This helps with slight variations like "the book" vs "book"
       for (const part of parts) {
-        const partWords = part.split(/\s+/).filter(w => w.length > 2); // ignore small words like "to", "a", "is"
+        const partWords = part.split(/\s+/).filter(w => w.length > 2);
         const userWords = normalizedUser.split(/\s+/);
         if (partWords.length > 0 && partWords.every(pw => userWords.some(uw => uw === pw || uw.includes(pw)))) {
           return true;
@@ -217,7 +200,6 @@ export default function Study() {
     setWasCorrect(correct);
     setShowResult(true);
 
-    // Only submit to SRS for SRS mode
     if (sessionType === 'srs') {
       const quality = correct ? 4 : 2;
       reviewMutation.mutate({
@@ -242,20 +224,18 @@ export default function Study() {
     processAnswer(correct);
   };
 
-  // Override function - when user says they were actually correct
   const handleOverrideCorrect = () => {
     if (!answeredCard) return;
 
     setWasCorrect(true);
     setWasOverridden(true);
 
-    // If SRS mode, submit a correction with quality 4 (correct)
     if (sessionType === 'srs') {
       const responseTime = Date.now() - startTime;
       reviewMutation.mutate({
         cardId: answeredCard.id,
         mode,
-        quality: 4, // Mark as correct
+        quality: 4,
         responseTimeMs: responseTime,
       });
     }
@@ -272,24 +252,18 @@ export default function Study() {
     if (sessionType === 'srs') {
       setCurrentIndex((prev) => prev + 1);
     } else if (sessionType === 'quick') {
-      // Quick mode: just mark as completed and move on
       setCompletedCards(prev => new Set(prev).add(currentCard.id));
       setCardQueue(prev => prev.slice(1));
     } else if (sessionType === 'mastery') {
-      // Mastery mode: smart reordering based on correct count
       const currentCardWithProgress = cardQueue[0];
 
       if (wasCorrect) {
         const newCorrectCount = currentCardWithProgress.correctCount + 1;
 
         if (newCorrectCount >= 3) {
-          // Card mastered! Remove from queue
           setMasteredCards(prev => new Set(prev).add(currentCard.id));
           setCardQueue(prev => prev.slice(1));
         } else {
-          // Reinsert card further back based on correct count
-          // 1st correct: 3-5 cards back
-          // 2nd correct: 6-10 cards back
           const minPosition = newCorrectCount === 1 ? 3 : 6;
           const maxPosition = newCorrectCount === 1 ? 5 : 10;
           const position = Math.min(
@@ -306,7 +280,6 @@ export default function Study() {
           });
         }
       } else {
-        // Wrong answer: reset correct count and put near front (position 1-2)
         const position = 1 + Math.floor(Math.random() * 2);
         setCardQueue(prev => {
           const updated = { ...prev[0], correctCount: 0, totalAttempts: prev[0].totalAttempts + 1 };
@@ -343,7 +316,6 @@ export default function Study() {
     setCompletedCards(new Set());
   };
 
-  // Calculate progress
   const getProgress = () => {
     if (sessionType === 'srs') {
       return { current: currentIndex, total: srsCards.length };
@@ -358,7 +330,6 @@ export default function Study() {
 
   const progress = getProgress();
 
-  // Check if session is complete
   const isSessionComplete = () => {
     if (sessionType === 'srs') {
       return currentIndex >= srsCards.length && srsCards.length > 0;
@@ -367,153 +338,85 @@ export default function Study() {
     }
   };
 
+  // Mode Selector Screen
   if (showModeSelector) {
     return (
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-red-600 to-orange-500 bg-clip-text text-transparent">
+        <div className="text-center mb-12 pt-8">
+          <div className="inline-block mb-4">
+            <span className="field-label">Study</span>
+          </div>
+          <h1 className="font-display text-4xl font-bold text-ink mb-2">
             Study Mode
           </h1>
-          <p className="text-gray-600">Choose how you want to practice today</p>
+          <p className="text-ink-light text-sm">Choose how you want to practice today</p>
         </div>
 
         {/* Session Type Selection */}
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50 mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Session Type
-          </h2>
+        <div className="document-card p-6 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="field-label">Session Type</span>
+            <div className="flex-1 border-t border-dashed border-border" />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
+            <SessionTypeButton
+              active={sessionType === 'srs'}
               onClick={() => setSessionType('srs')}
-              className={`relative p-4 rounded-xl transition-all text-left ${
-                sessionType === 'srs'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-              }`}
-            >
-              {sessionType === 'srs' && (
-                <div className="absolute top-3 right-3">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-              <div className="text-2xl mb-2">🧠</div>
-              <div className="font-semibold">Spaced Repetition</div>
-              <div className={`text-sm ${sessionType === 'srs' ? 'text-red-100' : 'text-gray-500'}`}>
-                Review due cards with SRS algorithm
-              </div>
-            </button>
-
-            <button
+              icon="脑"
+              title="Spaced Repetition"
+              description="Review due cards with SRS algorithm"
+            />
+            <SessionTypeButton
+              active={sessionType === 'mastery'}
               onClick={() => setSessionType('mastery')}
-              className={`relative p-4 rounded-xl transition-all text-left ${
-                sessionType === 'mastery'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-              }`}
-            >
-              {sessionType === 'mastery' && (
-                <div className="absolute top-3 right-3">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-              <div className="text-2xl mb-2">🎯</div>
-              <div className="font-semibold">Mastery Mode</div>
-              <div className={`text-sm ${sessionType === 'mastery' ? 'text-red-100' : 'text-gray-500'}`}>
-                Get each card right 3x with smart spacing
-              </div>
-            </button>
-
-            <button
+              icon="精"
+              title="Mastery Mode"
+              description="Get each card right 3x with smart spacing"
+            />
+            <SessionTypeButton
+              active={sessionType === 'quick'}
               onClick={() => setSessionType('quick')}
-              className={`relative p-4 rounded-xl transition-all text-left ${
-                sessionType === 'quick'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-              }`}
-            >
-              {sessionType === 'quick' && (
-                <div className="absolute top-3 right-3">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-              <div className="text-2xl mb-2">⚡</div>
-              <div className="font-semibold">Quick Review</div>
-              <div className={`text-sm ${sessionType === 'quick' ? 'text-red-100' : 'text-gray-500'}`}>
-                Go through all cards once
-              </div>
-            </button>
+              icon="快"
+              title="Quick Review"
+              description="Go through all cards once"
+            />
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50 mb-8">
-          <h2 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            Filter by Textbook
-          </h2>
+        <div className="document-card p-6 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="field-label">Filter by Textbook</span>
+            <div className="flex-1 border-t border-dashed border-border" />
+          </div>
 
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-gray-600 min-w-[50px]">Part:</span>
-              <button
-                onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  selectedPart === null
-                    ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
+              <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
+              <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}>
                 All Parts
-              </button>
-              <button
-                onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}
-                className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                  selectedPart === 1
-                    ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
+              </FilterButton>
+              <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}>
                 Part 1
-              </button>
+              </FilterButton>
             </div>
 
             {selectedPart === 1 && (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-gray-600 min-w-[50px]">Lesson:</span>
-                <button
-                  onClick={() => setSelectedLesson(null)}
-                  className={`px-4 py-2 rounded-xl font-medium transition-all ${
-                    selectedLesson === null
-                      ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
+                <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
+                <FilterButton active={selectedLesson === null} onClick={() => setSelectedLesson(null)}>
                   All
-                </button>
+                </FilterButton>
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
-                  <button
+                  <FilterButton
                     key={lesson}
+                    active={selectedLesson === lesson}
                     onClick={() => setSelectedLesson(lesson)}
-                    className={`w-10 h-10 rounded-xl font-medium transition-all ${
-                      selectedLesson === lesson
-                        ? 'bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
                   >
                     {lesson}
-                  </button>
+                  </FilterButton>
                 ))}
               </div>
             )}
@@ -521,122 +424,101 @@ export default function Study() {
         </div>
 
         {/* Writing Mode Selection */}
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50 mb-8">
-          <h2 className="text-lg font-semibold mb-2 text-gray-800 flex items-center gap-2">
-            <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-            Writing Mode
-          </h2>
-          <p className="text-sm text-gray-500 mb-4">For character writing practice modes</p>
+        <div className="document-card p-6 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="field-label">Writing Mode</span>
+            <div className="flex-1 border-t border-dashed border-border" />
+            <span className="text-xs text-ink-light">For character writing practice</span>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
-            <button
+            <WritingModeButton
+              active={writingMode === 'stroke_order'}
               onClick={() => setWritingMode('stroke_order')}
-              className={`relative p-4 rounded-xl transition-all text-left ${
-                writingMode === 'stroke_order'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-              }`}
-            >
-              {writingMode === 'stroke_order' && (
-                <div className="absolute top-3 right-3">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-              <div className="text-2xl mb-2">笔</div>
-              <div className="font-semibold">Stroke Order</div>
-              <div className={`text-sm ${writingMode === 'stroke_order' ? 'text-red-100' : 'text-gray-500'}`}>
-                Guided practice with stroke validation
-              </div>
-            </button>
-            <button
+              icon="笔"
+              title="Stroke Order"
+              description="Guided practice with stroke validation"
+            />
+            <WritingModeButton
+              active={writingMode === 'freehand'}
               onClick={() => setWritingMode('freehand')}
-              className={`relative p-4 rounded-xl transition-all text-left ${
-                writingMode === 'freehand'
-                  ? 'bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg'
-                  : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
-              }`}
-            >
-              {writingMode === 'freehand' && (
-                <div className="absolute top-3 right-3">
-                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              )}
-              <div className="text-2xl mb-2">画</div>
-              <div className="font-semibold">Freehand</div>
-              <div className={`text-sm ${writingMode === 'freehand' ? 'text-red-100' : 'text-gray-500'}`}>
-                Draw freely and self-assess
-              </div>
-            </button>
+              icon="画"
+              title="Freehand"
+              description="Draw freely and self-assess"
+            />
           </div>
         </div>
 
         {/* Quiz Mode Cards */}
-        <h2 className="text-lg font-semibold mb-4 text-gray-800">Select Quiz Type</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {quizModes.map((quizMode) => (
-            <button
-              key={quizMode.value}
-              onClick={() => startStudying(quizMode.value)}
-              className="group bg-white/70 backdrop-blur-sm p-5 rounded-2xl shadow-lg border border-white/50 hover:shadow-xl hover:-translate-y-1 transition-all text-left"
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center text-white text-xl font-bold shrink-0">
-                  {quizMode.icon}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="field-label">Select Quiz Type</span>
+            <div className="flex-1 border-t border-dashed border-border" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {quizModes.map((quizMode) => (
+              <button
+                key={quizMode.value}
+                onClick={() => startStudying(quizMode.value)}
+                className="group document-card p-5 text-left hover:shadow-document-hover transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 border-2 border-stamp-red flex items-center justify-center text-stamp-red font-chinese text-xl font-bold shrink-0">
+                    {quizMode.icon}
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-ink group-hover:text-stamp-red transition-colors">
+                      {quizMode.label}
+                    </h3>
+                    <p className="text-xs text-ink-light mt-1">{quizMode.description}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-800 group-hover:text-red-600 transition-colors">
-                    {quizMode.label}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">{quizMode.description}</p>
-                </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
+  // Loading State
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-red-200 rounded-full"></div>
-          <div className="text-gray-500">Loading cards...</div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="seal-stamp animate-stamp-press">
+            <span className="font-chinese">学</span>
+          </div>
+          <div className="text-ink-light text-sm tracking-widest uppercase">Loading cards...</div>
         </div>
       </div>
     );
   }
 
+  // Session Complete State
   if (isSessionComplete() || (!currentCard && !isLoading)) {
     const sessionLabel = sessionType === 'srs' ? 'Spaced Repetition' : sessionType === 'mastery' ? 'Mastery' : 'Quick Review';
     return (
-      <div className="max-w-2xl mx-auto text-center">
-        <div className="bg-white/70 backdrop-blur-sm p-12 rounded-3xl shadow-lg border border-white/50">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+      <div className="max-w-2xl mx-auto px-4 pt-12">
+        <div className="document-card p-12 text-center">
+          <div className="seal-stamp mx-auto mb-8 animate-stamp-press bg-green-50 border-green-600 text-green-600">
+            <span className="font-chinese">成</span>
           </div>
-          <h1 className="text-3xl font-bold mb-3 text-gray-800">
+          <h1 className="font-display text-3xl font-bold text-ink mb-4">
             {sessionType === 'mastery' ? 'All Cards Mastered!' : 'All Done!'}
           </h1>
-          <p className="text-lg text-gray-600 mb-4">
+          <p className="text-ink-light mb-2">
             {sessionType === 'srs' && "You've completed all your due reviews."}
             {sessionType === 'mastery' && `You got all ${masteredCards.size} cards correct 3 times each!`}
             {sessionType === 'quick' && `You reviewed all ${completedCards.size} cards.`}
           </p>
-          <p className="text-sm text-gray-500 mb-8">
+          <p className="text-xs text-ink-light tracking-wider uppercase mb-8">
             Session: {sessionLabel}
           </p>
           <button
             onClick={changeMode}
-            className="px-8 py-3 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-xl hover:shadow-lg transition-all font-semibold"
+            className="vintage-btn vintage-btn-primary"
           >
             Start New Session
           </button>
@@ -650,42 +532,39 @@ export default function Study() {
   const placeholder = getPlaceholder(mode);
   const sessionLabel = sessionType === 'srs' ? 'SRS' : sessionType === 'mastery' ? 'Mastery' : 'Quick';
 
-  // Get mastery info for current card
   const currentCardProgress = sessionType === 'mastery' && cardQueue[0]
     ? cardQueue[0]
     : null;
 
+  // Main Study Interface
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4 pt-8">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{currentModeLabel}</h1>
-          <div className="flex items-center gap-3 mt-1">
+          <h1 className="font-display text-2xl font-bold text-ink">{currentModeLabel}</h1>
+          <div className="flex items-center gap-3 mt-2">
             <button
               onClick={changeMode}
-              className="text-sm text-gray-500 hover:text-red-600 transition flex items-center gap-1"
+              className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition flex items-center gap-1"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back
+              ← Back
             </button>
-            <span className="text-sm px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-medium">
+            <span className="text-xs px-2 py-1 border border-stamp-red text-stamp-red tracking-wider uppercase">
               {sessionLabel}
             </span>
             {(selectedPart || selectedLesson) && (
-              <span className="text-sm text-gray-400">
+              <span className="text-xs text-ink-light">
                 Part {selectedPart}{selectedLesson ? `, L${selectedLesson}` : ''}
               </span>
             )}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-medium text-gray-500">
+          <div className="text-xs tracking-wider uppercase text-ink-light">
             {sessionType === 'mastery' ? 'Mastered' : 'Progress'}
           </div>
-          <div className="text-lg font-bold text-gray-800">
+          <div className="font-display text-2xl font-bold text-ink">
             {progress.current} / {progress.total}
           </div>
           {sessionType === 'mastery' && currentCardProgress && (
@@ -693,10 +572,10 @@ export default function Study() {
               {[0, 1, 2].map(i => (
                 <div
                   key={i}
-                  className={`w-2 h-2 rounded-full ${
+                  className={`w-2 h-2 ${
                     i < currentCardProgress.correctCount
-                      ? 'bg-green-500'
-                      : 'bg-gray-300'
+                      ? 'bg-green-600'
+                      : 'bg-border'
                   }`}
                 />
               ))}
@@ -706,15 +585,15 @@ export default function Study() {
       </div>
 
       {/* Progress Bar */}
-      <div className="h-2 bg-gray-200 rounded-full mb-6 overflow-hidden">
+      <div className="h-1 bg-border mb-8 overflow-hidden">
         <div
-          className="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-300"
+          className="h-full bg-stamp-red transition-all duration-300"
           style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
         />
       </div>
 
       {/* Main Card */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/50 p-8">
+      <div className="document-card p-8">
         {!showResult && currentCard ? (
           mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' ? (
             <WritingQuiz
@@ -725,24 +604,40 @@ export default function Study() {
             />
           ) : (
             <>
-              <div className={`mb-10 text-center ${mode.includes('hanzi') && mode.split('_')[0] !== 'english' ? 'text-8xl' : 'text-4xl font-medium text-gray-800'}`}>
-                {prompt}
+              {/* Prompt Display */}
+              <div className="text-center mb-10">
+                <span className="field-label mb-4 inline-block">
+                  {mode.includes('hanzi') && mode.split('_')[0] !== 'english' ? 'Character' : 'Prompt'}
+                </span>
+                <div className={`mt-4 ${
+                  mode.includes('hanzi') && mode.split('_')[0] !== 'english'
+                    ? 'text-8xl font-chinese text-stamp-red'
+                    : 'text-3xl font-display text-ink'
+                }`}>
+                  {prompt}
+                </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                  type="text"
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  className="w-full px-5 py-4 text-xl border-2 border-gray-200 rounded-2xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none"
-                  placeholder={placeholder}
-                  autoFocus
-                  required
-                />
+              {/* Answer Form */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+                    Your Answer
+                  </label>
+                  <input
+                    type="text"
+                    value={answer}
+                    onChange={(e) => setAnswer(e.target.value)}
+                    className="w-full text-xl"
+                    placeholder={placeholder}
+                    autoFocus
+                    required
+                  />
+                </div>
 
                 <button
                   type="submit"
-                  className="w-full py-4 bg-gradient-to-r from-red-500 to-orange-500 text-white rounded-2xl hover:shadow-lg transition-all text-lg font-semibold"
+                  className="vintage-btn vintage-btn-primary w-full"
                 >
                   Check Answer
                 </button>
@@ -751,57 +646,52 @@ export default function Study() {
           )
         ) : answeredCard ? (
           <>
-            <div className={`text-center mb-8 ${wasCorrect ? 'text-green-500' : 'text-red-500'}`}>
-              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 ${
-                wasCorrect ? 'bg-green-100' : 'bg-red-100'
+            {/* Result Display */}
+            <div className="text-center mb-8">
+              <div className={`seal-stamp mx-auto mb-4 ${
+                wasCorrect
+                  ? 'border-green-600 text-green-600 bg-green-50'
+                  : 'border-stamp-red text-stamp-red bg-stamp-red-light'
               }`}>
-                {wasCorrect ? (
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                )}
+                <span className="font-chinese">{wasCorrect ? '对' : '错'}</span>
               </div>
-              <div className="text-2xl font-bold">
+              <div className={`font-display text-2xl font-bold ${wasCorrect ? 'text-green-600' : 'text-stamp-red'}`}>
                 {wasCorrect ? 'Correct!' : 'Incorrect'}
               </div>
               {sessionType === 'mastery' && wasCorrect && currentCardProgress && (
-                <div className="text-sm text-gray-500 mt-2">
+                <div className="text-sm text-ink-light mt-2">
                   {currentCardProgress.correctCount + 1 >= 3
-                    ? '🎉 Card mastered!'
+                    ? 'Card mastered!'
                     : `${currentCardProgress.correctCount + 1}/3 correct`}
                 </div>
               )}
             </div>
 
+            {/* Card Details */}
             <div className="space-y-4 mb-8">
-              <div className="text-center py-6 bg-gray-50 rounded-2xl">
-                <div className="text-6xl mb-3">{answeredCard.hanzi}</div>
-                <div className="text-2xl text-gray-600 mb-1">{answeredCard.pinyinDisplay}</div>
-                <div className="text-lg text-gray-500">{answeredCard.english}</div>
+              <div className="text-center py-6 bg-cream border border-border">
+                <div className="text-6xl font-chinese text-stamp-red mb-3">{answeredCard.hanzi}</div>
+                <div className="text-xl text-ink-light mb-1">{answeredCard.pinyinDisplay}</div>
+                <div className="text-ink">{answeredCard.english}</div>
               </div>
 
               {!wasCorrect && answer && (
-                <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-red-600">Your answer:</span>
-                    <span className="font-medium text-red-700">{answer}</span>
+                <div className="p-4 bg-stamp-red-light border border-stamp-red">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-stamp-red-dark">Your answer:</span>
+                    <span className="font-medium text-stamp-red">{answer}</span>
                   </div>
-                  <div className="flex justify-between items-center mt-2">
-                    <span className="text-sm text-green-600">Correct answer:</span>
+                  <div className="flex justify-between items-center mt-2 text-sm">
+                    <span className="text-green-700">Correct answer:</span>
                     <span className="font-medium text-green-700">{getCorrectAnswer(answeredCard, mode)}</span>
                   </div>
                 </div>
               )}
 
-              {/* Override button - appears when marked wrong */}
               {!wasCorrect && !wasOverridden && (
                 <button
                   onClick={handleOverrideCorrect}
-                  className="w-full py-3 bg-amber-100 text-amber-700 rounded-xl border border-amber-200 hover:bg-amber-200 transition text-sm font-medium"
+                  className="w-full py-3 bg-cream text-ink-light border border-border hover:border-ink text-xs tracking-wider uppercase transition"
                 >
                   Actually, I was correct
                 </button>
@@ -814,14 +704,14 @@ export default function Study() {
               )}
 
               {answeredCard.exampleSentence && (
-                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-sm text-blue-600 mb-2 font-medium">Example Sentence:</p>
-                  <p className="text-lg">{answeredCard.exampleSentence}</p>
+                <div className="p-4 bg-cream border border-border">
+                  <p className="text-xs tracking-wider uppercase text-ink-light mb-2">Example Sentence:</p>
+                  <p className="text-lg font-chinese">{answeredCard.exampleSentence}</p>
                   {answeredCard.examplePinyin && (
-                    <p className="text-gray-600 mt-1">{answeredCard.examplePinyin}</p>
+                    <p className="text-ink-light mt-1">{answeredCard.examplePinyin}</p>
                   )}
                   {answeredCard.exampleEnglish && (
-                    <p className="text-gray-500 mt-1">{answeredCard.exampleEnglish}</p>
+                    <p className="text-ink-light text-sm mt-1">{answeredCard.exampleEnglish}</p>
                   )}
                 </div>
               )}
@@ -829,13 +719,109 @@ export default function Study() {
 
             <button
               onClick={handleNext}
-              className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-2xl hover:shadow-lg transition-all text-lg font-semibold"
+              className="vintage-btn w-full border-ink text-ink hover:bg-ink hover:text-paper"
             >
-              Next Card
+              Next Card →
             </button>
           </>
         ) : null}
       </div>
     </div>
+  );
+}
+
+// Helper Components
+function SessionTypeButton({
+  active,
+  onClick,
+  icon,
+  title,
+  description
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative p-4 text-left transition-all border ${
+        active
+          ? 'bg-stamp-red border-stamp-red text-paper'
+          : 'bg-paper border-border text-ink hover:border-ink'
+      }`}
+    >
+      {active && (
+        <div className="absolute top-2 right-2 w-4 h-4 border border-paper flex items-center justify-center text-xs">
+          ✓
+        </div>
+      )}
+      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-paper' : 'text-stamp-red'}`}>{icon}</div>
+      <div className="font-display font-semibold">{title}</div>
+      <div className={`text-xs mt-1 ${active ? 'text-stamp-red-light' : 'text-ink-light'}`}>
+        {description}
+      </div>
+    </button>
+  );
+}
+
+function WritingModeButton({
+  active,
+  onClick,
+  icon,
+  title,
+  description
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`relative p-4 text-left transition-all border ${
+        active
+          ? 'bg-stamp-red border-stamp-red text-paper'
+          : 'bg-paper border-border text-ink hover:border-ink'
+      }`}
+    >
+      {active && (
+        <div className="absolute top-2 right-2 w-4 h-4 border border-paper flex items-center justify-center text-xs">
+          ✓
+        </div>
+      )}
+      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-paper' : 'text-stamp-red'}`}>{icon}</div>
+      <div className="font-display font-semibold">{title}</div>
+      <div className={`text-xs mt-1 ${active ? 'text-stamp-red-light' : 'text-ink-light'}`}>
+        {description}
+      </div>
+    </button>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1 text-xs tracking-wider uppercase transition-all border ${
+        active
+          ? 'bg-stamp-red text-paper border-stamp-red'
+          : 'bg-paper text-ink-light border-border hover:border-ink'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

@@ -11,9 +11,11 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-pulse flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-red-200 rounded-full"></div>
-          <div className="text-gray-500">Loading...</div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="seal-stamp animate-stamp-press">
+            <span className="font-chinese">学</span>
+          </div>
+          <div className="text-ink-light text-sm tracking-widest uppercase">Loading...</div>
         </div>
       </div>
     );
@@ -22,70 +24,79 @@ export default function Home() {
   const totalDue = stats?.dueCounts.reduce((sum, item) => sum + item.count, 0) || 0;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-5xl mx-auto px-4">
       {/* Hero Section */}
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 bg-clip-text text-transparent">
-          Welcome Back 🐯
+      <div className="text-center mb-16 pt-8">
+        <div className="inline-block mb-6">
+          <span className="field-label">Welcome</span>
+        </div>
+        <h1 className="font-display text-5xl md:text-6xl font-bold mb-4 text-ink tracking-tight">
+          Chinese Study
         </h1>
-        <p className="text-xl text-gray-600"> 你覺得中文難不難？</p>
+        <p className="text-ink-light text-lg font-chinese tracking-wide">
+          你覺得中文難不難？
+        </p>
+
+        {/* Decorative stamp */}
+        <div className="mt-8 flex justify-center">
+          <div className="seal-stamp animate-stamp-press">
+            <span className="font-chinese">汉</span>
+          </div>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <StatCard
-          title="Total Cards"
-          value={stats?.totalCards || 0}
-          icon={
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          }
-          gradient="from-blue-500 to-cyan-400"
-        />
+      {/* Stats Section - Ledger Style */}
+      <div className="document-card p-6 mb-10">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="field-label">Statistics</span>
+          <div className="flex-1 border-t border-dashed border-border" />
+          <span className="text-xs text-ink-light tracking-wider uppercase">Overview</span>
+        </div>
 
-        <StatCard
-          title="Total Reviews"
-          value={stats?.totalReviews || 0}
-          icon={
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          gradient="from-green-500 to-emerald-400"
-        />
-
-        <StatCard
-          title="Cards Due"
-          value={totalDue}
-          icon={
-            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          }
-          gradient="from-red-500 to-orange-400"
-          highlight={totalDue > 0}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatCard
+            label="Total Cards"
+            value={stats?.totalCards || 0}
+            annotation="In collection"
+          />
+          <StatCard
+            label="Total Reviews"
+            value={stats?.totalReviews || 0}
+            annotation="Completed"
+          />
+          <StatCard
+            label="Cards Due"
+            value={totalDue}
+            annotation="Awaiting review"
+            highlight={totalDue > 0}
+          />
+        </div>
       </div>
 
       {/* Due Cards by Mode */}
       {stats?.dueCounts && stats.dueCounts.some(item => item.count > 0) && (
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-white/50 mb-10">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Due Cards by Mode</h2>
+        <div className="document-card p-6 mb-10">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="field-label">Due by Mode</span>
+            <div className="flex-1 border-t border-dashed border-border" />
+          </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {stats.dueCounts.map((item) => (
               <div
                 key={item.mode}
-                className={`flex items-center justify-between p-3 rounded-xl transition-all ${
+                className={`flex items-center justify-between p-4 border transition-all ${
                   item.count > 0
-                    ? 'bg-red-50 border border-red-100'
-                    : 'bg-gray-50 border border-gray-100'
+                    ? 'border-stamp-red bg-stamp-red-light/30'
+                    : 'border-border bg-paper'
                 }`}
               >
-                <span className="text-sm text-gray-600">
+                <span className="text-xs tracking-wider uppercase text-ink-light">
                   {formatModeName(item.mode)}
                 </span>
-                <span className={`font-bold text-lg ${item.count > 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                <span className={`font-display text-2xl font-bold ${
+                  item.count > 0 ? 'text-stamp-red' : 'text-border'
+                }`}>
                   {item.count}
                 </span>
               </div>
@@ -95,79 +106,98 @@ export default function Home() {
       )}
 
       {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         <Link
           to="/study"
-          className="group relative overflow-hidden bg-gradient-to-br from-red-500 to-orange-500 text-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+          className="group document-card p-8 hover:shadow-document-hover transition-all"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              <h2 className="text-2xl font-bold">Start Studying</h2>
+          <div className="flex items-start justify-between mb-6">
+            <span className="field-label">Action</span>
+            <div className="text-stamp-red font-chinese text-4xl font-bold opacity-20 group-hover:opacity-40 transition-opacity">
+              学
             </div>
-            <p className="text-red-100">Review your cards</p>
-            {totalDue > 0 && (
-              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-sm">
-                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+          </div>
+
+          <h2 className="font-display text-2xl font-bold text-ink mb-2">
+            Start Studying
+          </h2>
+          <p className="text-ink-light text-sm mb-6">Review your cards and practice</p>
+
+          {totalDue > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-stamp-red rounded-full animate-pulse" />
+              <span className="text-xs tracking-wider uppercase text-stamp-red font-medium">
                 {totalDue} cards due
-              </div>
-            )}
+              </span>
+            </div>
+          )}
+
+          <div className="mt-6 pt-4 border-t border-dashed border-border flex items-center justify-between">
+            <span className="text-xs tracking-widest uppercase text-ink-light">Begin Session</span>
+            <span className="text-ink group-hover:translate-x-1 transition-transform">→</span>
           </div>
         </Link>
 
         <Link
           to="/cards"
-          className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-500 text-white p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+          className="group document-card p-8 hover:shadow-document-hover transition-all"
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-transform"></div>
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-3">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <h2 className="text-2xl font-bold">Manage Cards</h2>
-            </div>
-            <p className="text-blue-100">Add, edit, and organize your vocabulary</p>
-            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-sm">
-              {stats?.totalCards || 0} total cards
+          <div className="flex items-start justify-between mb-6">
+            <span className="field-label">Action</span>
+            <div className="text-stamp-red font-chinese text-4xl font-bold opacity-20 group-hover:opacity-40 transition-opacity">
+              卡
             </div>
           </div>
+
+          <h2 className="font-display text-2xl font-bold text-ink mb-2">
+            Manage Cards
+          </h2>
+          <p className="text-ink-light text-sm mb-6">Add, edit, and organize vocabulary</p>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs tracking-wider uppercase text-ink-light">
+              {stats?.totalCards || 0} total cards
+            </span>
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-dashed border-border flex items-center justify-between">
+            <span className="text-xs tracking-widest uppercase text-ink-light">View Collection</span>
+            <span className="text-ink group-hover:translate-x-1 transition-transform">→</span>
+          </div>
         </Link>
+      </div>
+
+      {/* Footer decoration */}
+      <div className="flex items-center justify-center gap-4 py-8 text-border">
+        <div className="w-8 h-px bg-border" />
+        <span className="text-xs tracking-[0.3em] uppercase">Est. 2024</span>
+        <div className="w-8 h-px bg-border" />
       </div>
     </div>
   );
 }
 
 function StatCard({
-  title,
+  label,
   value,
-  icon,
-  gradient,
+  annotation,
   highlight = false
 }: {
-  title: string;
+  label: string;
   value: number;
-  icon: React.ReactNode;
-  gradient: string;
+  annotation: string;
   highlight?: boolean;
 }) {
   return (
-    <div className={`relative overflow-hidden bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-lg border transition-all hover:-translate-y-1 ${
-      highlight ? 'border-red-200 ring-2 ring-red-100' : 'border-white/50'
-    }`}>
-      <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${gradient} opacity-10 rounded-full -mr-8 -mt-8`}></div>
-      <div className="relative">
-        <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${gradient} text-white mb-4`}>
-          {icon}
-        </div>
-        <h3 className="text-sm font-medium text-gray-500 mb-1">{title}</h3>
-        <p className={`text-4xl font-bold ${highlight ? 'text-red-600' : 'text-gray-800'}`}>
-          {value.toLocaleString()}
-        </p>
+    <div className={`p-6 border ${highlight ? 'border-stamp-red bg-stamp-red-light/20' : 'border-border'}`}>
+      <div className="flex items-start justify-between mb-4">
+        <span className="text-xs tracking-wider uppercase text-ink-light">{label}</span>
+        {highlight && <span className="w-2 h-2 bg-stamp-red rounded-full animate-pulse" />}
       </div>
+      <div className={`font-display text-5xl font-bold mb-2 ${highlight ? 'text-stamp-red' : 'text-ink'}`}>
+        {value.toLocaleString()}
+      </div>
+      <div className="text-xs text-ink-light tracking-wider">{annotation}</div>
     </div>
   );
 }

@@ -1,34 +1,267 @@
 @import "tailwindcss";
 
+/* Import distinctive fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
+
 :root {
-  --color-primary: #dc2626;
-  --color-primary-dark: #b91c1c;
-  --color-secondary: #2563eb;
-  --color-secondary-dark: #1d4ed8;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  /* Vintage color palette */
+  --color-cream: #f7f3eb;
+  --color-paper: #faf6ee;
+  --color-stamp-red: #c54b3c;
+  --color-stamp-red-dark: #a33d31;
+  --color-stamp-red-light: #e8d4d0;
+  --color-ink: #2c2420;
+  --color-ink-light: #5c5450;
+  --color-border: #d4c8b8;
+  --color-grid: #e8e0d4;
+
+  /* Typography */
+  --font-display: 'Playfair Display', 'Noto Serif SC', serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-chinese: 'Noto Serif SC', 'Songti SC', serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(135deg, #fef2f2 0%, #fff7ed 50%, #fefce8 100%);
+  background-color: var(--color-cream);
+  font-family: var(--font-mono);
+  color: var(--color-ink);
+
+  /* Paper texture with grid lines */
+  background-image:
+    /* Horizontal grid lines */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 31px,
+      var(--color-grid) 31px,
+      var(--color-grid) 32px
+    ),
+    /* Vertical accent lines */
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 199px,
+      var(--color-grid) 199px,
+      var(--color-grid) 200px
+    ),
+    /* Paper noise texture */
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-color: var(--color-paper);
 }
 
-/* Custom scrollbar */
+/* Stamp effect for Chinese characters */
+.stamp-text {
+  color: var(--color-stamp-red);
+  text-shadow:
+    1px 1px 0 rgba(197, 75, 60, 0.3),
+    -1px -1px 0 rgba(197, 75, 60, 0.1);
+  filter: url('#stamp-texture');
+  position: relative;
+}
+
+.stamp-text::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Vintage label styling */
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-ink-light);
+  border: 1px solid var(--color-border);
+  padding: 2px 8px;
+  display: inline-block;
+  background: var(--color-paper);
+}
+
+/* Document card styling */
+.document-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+
+.document-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-stamp-red);
+}
+
+/* Vintage button styling */
+.vintage-btn {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 2px solid var(--color-ink);
+  background: transparent;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.vintage-btn:hover {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+.vintage-btn-primary {
+  background: var(--color-stamp-red);
+  color: var(--color-paper);
+  border-color: var(--color-stamp-red);
+}
+
+.vintage-btn-primary:hover {
+  background: var(--color-stamp-red-dark);
+  border-color: var(--color-stamp-red-dark);
+}
+
+/* Custom scrollbar - vintage style */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: var(--color-cream);
+  border-left: 1px solid var(--color-border);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c4c4c4;
-  border-radius: 4px;
+  background: var(--color-border);
+  border: 2px solid var(--color-cream);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a0a0a0;
+  background: var(--color-ink-light);
+}
+
+/* Typography classes */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.font-chinese {
+  font-family: var(--font-chinese);
+}
+
+/* Input styling */
+input, select, textarea {
+  font-family: var(--font-mono);
+  background: var(--color-paper);
+  border: 1px solid var(--color-border);
+  padding: 12px 16px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-stamp-red);
+  box-shadow: 0 0 0 3px var(--color-stamp-red-light);
+}
+
+/* Decorative corner marks */
+.corner-marks {
+  position: relative;
+}
+
+.corner-marks::before,
+.corner-marks::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--color-ink);
+  border-style: solid;
+}
+
+.corner-marks::before {
+  top: -5px;
+  left: -5px;
+  border-width: 2px 0 0 2px;
+}
+
+.corner-marks::after {
+  bottom: -5px;
+  right: -5px;
+  border-width: 0 2px 2px 0;
+}
+
+/* Stamp seal effect */
+.seal-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border: 3px solid var(--color-stamp-red);
+  border-radius: 4px;
+  color: var(--color-stamp-red);
+  font-family: var(--font-chinese);
+  font-size: 2rem;
+  font-weight: 700;
+  transform: rotate(-5deg);
+  position: relative;
+}
+
+.seal-stamp::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 1px solid var(--color-stamp-red);
+  border-radius: 6px;
+  opacity: 0.5;
+}
+
+/* Horizontal rule styling */
+hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 2rem 0;
+}
+
+/* Selection styling */
+::selection {
+  background: var(--color-stamp-red-light);
+  color: var(--color-ink);
+}
+
+/* Loading animation */
+@keyframes stamp-press {
+  0% { transform: scale(1.2) rotate(-5deg); opacity: 0; }
+  50% { transform: scale(0.95) rotate(-5deg); }
+  100% { transform: scale(1) rotate(-5deg); opacity: 1; }
+}
+
+.animate-stamp {
+  animation: stamp-press 0.4s ease-out forwards;
+}
+
+/* SVG filter for stamp texture */
+svg#stamp-filter {
+  position: absolute;
+  width: 0;
+  height: 0;
 }

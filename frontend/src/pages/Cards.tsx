@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 export default function Cards() {
   const [isAddingCard, setIsAddingCard] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPart, setSelectedPart] = useState<number | null>(1); // Default to Part 1
+  const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
@@ -15,7 +15,7 @@ export default function Cards() {
       search: searchTerm,
       textbookPart: selectedPart || undefined,
       lessonNumber: selectedLesson || undefined,
-      limit: 500, // Fetch all cards, not just 20
+      limit: 500,
     }),
   });
 
@@ -33,124 +33,173 @@ export default function Cards() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold">My Cards</h1>
+    <div className="max-w-6xl mx-auto px-4">
+      {/* Header */}
+      <div className="flex justify-between items-start mb-10 pt-8">
+        <div>
+          <div className="inline-block mb-4">
+            <span className="field-label">Collection</span>
+          </div>
+          <h1 className="font-display text-4xl font-bold text-ink">My Cards</h1>
+        </div>
         <button
           onClick={() => setIsAddingCard(true)}
-          className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+          className="vintage-btn vintage-btn-primary"
         >
-          Add Card
+          + Add Card
         </button>
       </div>
 
-      <div className="mb-6 space-y-4">
-        <input
-          type="text"
-          placeholder="Search cards..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-        />
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Part:</span>
-          <button
-            onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}
-            className={`px-3 py-1 rounded-lg transition ${
-              selectedPart === null
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}
-            className={`px-3 py-1 rounded-lg transition ${
-              selectedPart === 1
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
-          >
-            Part 1
-          </button>
+      {/* Filters */}
+      <div className="document-card p-6 mb-8">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="field-label">Filters</span>
+          <div className="flex-1 border-t border-dashed border-border" />
         </div>
 
-        {selectedPart === 1 && (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search cards..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Lesson:</span>
-            <button
-              onClick={() => setSelectedLesson(null)}
-              className={`px-3 py-1 rounded-lg transition ${
-                selectedLesson === null
-                  ? 'bg-red-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
+            <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
+            <FilterButton
+              active={selectedPart === null}
+              onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}
             >
               All
-            </button>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
-              <button
-                key={lesson}
-                onClick={() => setSelectedLesson(lesson)}
-                className={`px-3 py-1 rounded-lg transition ${
-                  selectedLesson === lesson
-                    ? 'bg-red-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {lesson}
-              </button>
-            ))}
+            </FilterButton>
+            <FilterButton
+              active={selectedPart === 1}
+              onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}
+            >
+              Part 1
+            </FilterButton>
           </div>
-        )}
+
+          {selectedPart === 1 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
+              <FilterButton
+                active={selectedLesson === null}
+                onClick={() => setSelectedLesson(null)}
+              >
+                All
+              </FilterButton>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
+                <FilterButton
+                  key={lesson}
+                  active={selectedLesson === lesson}
+                  onClick={() => setSelectedLesson(lesson)}
+                >
+                  {lesson}
+                </FilterButton>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
+      {/* Cards Grid */}
       {isLoading ? (
-        <div className="text-center">Loading...</div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data?.cards.map((card) => (
-            <div key={card.id} className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1" />
-                {card.lessonNumber && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-semibold rounded">
-                    L{card.lessonNumber}
-                  </span>
-                )}
-              </div>
-
-              <div className="text-4xl mb-2 text-center">{card.hanzi}</div>
-              <div className="text-xl mb-2 text-center text-gray-600">{card.pinyinDisplay}</div>
-              <div className="text-lg mb-4 text-center">{card.english}</div>
-
-              {card.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {card.tags.map((tag) => (
-                    <span key={tag} className="px-2 py-1 bg-gray-200 text-gray-700 text-xs rounded">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleDelete(card.id)}
-                  className="flex-1 px-4 py-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition text-sm"
-                >
-                  Delete
-                </button>
-              </div>
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="flex flex-col items-center gap-6">
+            <div className="seal-stamp animate-stamp-press">
+              <span className="font-chinese">卡</span>
             </div>
-          ))}
+            <div className="text-ink-light text-sm tracking-widest uppercase">Loading...</div>
+          </div>
         </div>
+      ) : (
+        <>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-xs tracking-wider uppercase text-ink-light">
+              {data?.cards.length || 0} cards found
+            </span>
+            <div className="flex-1 border-t border-dashed border-border" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {data?.cards.map((card) => (
+              <div key={card.id} className="document-card p-6 group hover:shadow-document-hover transition-all">
+                {/* Card Header */}
+                <div className="flex justify-between items-start mb-4">
+                  <span className="field-label">Card</span>
+                  {card.lessonNumber && (
+                    <span className="text-xs tracking-wider uppercase px-2 py-1 border border-stamp-red text-stamp-red">
+                      L{card.lessonNumber}
+                    </span>
+                  )}
+                </div>
+
+                {/* Hanzi */}
+                <div className="text-center py-4">
+                  <div className="text-5xl font-chinese text-stamp-red mb-3">{card.hanzi}</div>
+                  <div className="text-lg text-ink-light mb-1">{card.pinyinDisplay}</div>
+                  <div className="text-sm text-ink">{card.english}</div>
+                </div>
+
+                {/* Tags */}
+                {card.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-4 pt-4 border-t border-dashed border-border">
+                    {card.tags.map((tag) => (
+                      <span key={tag} className="text-xs px-2 py-1 bg-cream text-ink-light border border-border">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="pt-4 border-t border-dashed border-border">
+                  <button
+                    onClick={() => handleDelete(card.id)}
+                    className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {isAddingCard && <AddCardModal onClose={() => setIsAddingCard(false)} />}
     </div>
+  );
+}
+
+function FilterButton({
+  active,
+  onClick,
+  children
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1 text-xs tracking-wider uppercase transition-all border ${
+        active
+          ? 'bg-stamp-red text-paper border-stamp-red'
+          : 'bg-paper text-ink-light border-border hover:border-ink'
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -189,107 +238,113 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full">
-        <h2 className="text-2xl font-bold mb-6">Add New Card</h2>
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center p-4 z-50">
+      <div className="document-card p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <span className="field-label">New Card</span>
+          <div className="flex-1 border-t border-dashed border-border" />
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Hanzi</label>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Hanzi</label>
             <input
               type="text"
               value={formData.hanzi}
               onChange={(e) => setFormData({ ...formData, hanzi: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              className="w-full text-2xl font-chinese text-center"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pinyin (with numbers)</label>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Pinyin (with numbers)</label>
             <input
               type="text"
               value={formData.pinyin}
               onChange={(e) => setFormData({ ...formData, pinyin: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              className="w-full"
               placeholder="ni3 hao3"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Pinyin Display (with marks)</label>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Pinyin Display (with marks)</label>
             <input
               type="text"
               value={formData.pinyinDisplay}
               onChange={(e) => setFormData({ ...formData, pinyinDisplay: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              className="w-full"
               placeholder="nǐ hǎo"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">English</label>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">English</label>
             <input
               type="text"
               value={formData.english}
               onChange={(e) => setFormData({ ...formData, english: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              className="w-full"
               required
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Textbook Part</label>
-            <select
-              value={formData.textbookPart}
-              onChange={(e) => setFormData({ ...formData, textbookPart: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-            >
-              <option value="1">Part 1</option>
-              <option value="2">Part 2</option>
-            </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Part</label>
+              <select
+                value={formData.textbookPart}
+                onChange={(e) => setFormData({ ...formData, textbookPart: e.target.value })}
+                className="w-full"
+              >
+                <option value="1">Part 1</option>
+                <option value="2">Part 2</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Lesson</label>
+              <select
+                value={formData.lessonNumber}
+                onChange={(e) => setFormData({ ...formData, lessonNumber: e.target.value })}
+                className="w-full"
+              >
+                <option value="">None</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
+                  <option key={lesson} value={lesson.toString()}>
+                    Lesson {lesson}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Lesson Number</label>
-            <select
-              value={formData.lessonNumber}
-              onChange={(e) => setFormData({ ...formData, lessonNumber: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-            >
-              <option value="">None</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
-                <option key={lesson} value={lesson.toString()}>
-                  Lesson {lesson}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tags (comma-separated)</label>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Tags (comma-separated)</label>
             <input
               type="text"
               value={formData.tags}
               onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+              className="w-full"
               placeholder="greetings, verbs"
             />
           </div>
 
-          <div className="flex gap-4 mt-6">
+          <div className="flex gap-4 pt-6 border-t border-dashed border-border">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+              className="vintage-btn flex-1"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition"
+              className="vintage-btn vintage-btn-primary flex-1 disabled:opacity-50"
             >
               {createMutation.isPending ? 'Adding...' : 'Add Card'}
             </button>

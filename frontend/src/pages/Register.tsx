@@ -38,76 +38,102 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-3xl font-bold text-center mb-8 text-red-600">
-          Create Account
-        </h1>
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="max-w-md w-full">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="seal-stamp mx-auto mb-6 animate-stamp-press">
+            <span className="font-chinese">新</span>
+          </div>
+          <h1 className="font-display text-4xl font-bold text-ink mb-2">
+            Create Account
+          </h1>
+          <p className="text-ink-light text-sm tracking-widest uppercase">
+            Join Chinese Study
+          </p>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              required
-            />
+        {/* Register Form */}
+        <div className="document-card p-8">
+          <div className="flex items-center gap-3 mb-8">
+            <span className="field-label">Register</span>
+            <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
-              {error}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full"
+                required
+              />
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            {loading ? 'Creating account...' : 'Register'}
-          </button>
-        </form>
+            <div>
+              <label htmlFor="password" className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full"
+                required
+              />
+            </div>
 
-        <p className="mt-6 text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-red-600 hover:underline">
-            Login here
-          </Link>
-        </p>
+            <div>
+              <label htmlFor="confirmPassword" className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full"
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="p-4 bg-stamp-red-light border border-stamp-red text-stamp-red text-sm">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="vintage-btn vintage-btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating account...' : 'Register'}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-dashed border-border text-center">
+            <p className="text-sm text-ink-light">
+              Already have an account?{' '}
+              <Link to="/login" className="text-stamp-red hover:underline">
+                Login here
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Footer decoration */}
+        <div className="flex items-center justify-center gap-4 py-8 text-border">
+          <div className="w-8 h-px bg-border" />
+          <span className="text-xs tracking-[0.3em] uppercase">Est. 2024</span>
+          <div className="w-8 h-px bg-border" />
+        </div>
       </div>
     </div>
   );
