@@ -19,6 +19,7 @@
   --font-display: 'Playfair Display', 'Noto Serif SC', serif;
   --font-mono: 'Space Mono', 'Courier New', monospace;
   --font-chinese: 'Noto Serif SC', 'Songti SC', serif;
+  --font-kaiti: 'KaiTi', 'STKaiti', 'AR PL UKai CN', 'Noto Serif SC', serif;
 }
 
 * {
@@ -164,6 +165,10 @@ body {
 
 .font-chinese {
   font-family: var(--font-chinese);
+}
+
+.font-kaiti {
+  font-family: var(--font-kaiti);
 }
 
 /* Input styling */

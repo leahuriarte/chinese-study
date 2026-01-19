@@ -25,6 +25,7 @@ export default {
         display: ['Playfair Display', 'Noto Serif SC', 'serif'],
         mono: ['Space Mono', 'Courier New', 'monospace'],
         chinese: ['Noto Serif SC', 'Songti SC', 'serif'],
+        kaiti: ['KaiTi', 'STKaiti', 'AR PL UKai CN', 'Noto Serif SC', 'serif'],
       },
       spacing: {
         '18': '4.5rem',

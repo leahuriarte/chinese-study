@@ -611,7 +611,7 @@ export default function Study() {
                 </span>
                 <div className={`mt-4 ${
                   mode.includes('hanzi') && mode.split('_')[0] !== 'english'
-                    ? 'text-8xl font-chinese text-stamp-red'
+                    ? 'text-8xl font-kaiti text-stamp-red'
                     : 'text-3xl font-display text-ink'
                 }`}>
                   {prompt}
@@ -670,7 +670,7 @@ export default function Study() {
             {/* Card Details */}
             <div className="space-y-4 mb-8">
               <div className="text-center py-6 bg-cream border border-border">
-                <div className="text-6xl font-chinese text-stamp-red mb-3">{answeredCard.hanzi}</div>
+                <div className="text-6xl font-kaiti text-stamp-red mb-3">{answeredCard.hanzi}</div>
                 <div className="text-xl text-ink-light mb-1">{answeredCard.pinyinDisplay}</div>
                 <div className="text-ink">{answeredCard.english}</div>
               </div>
@@ -815,10 +815,10 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 text-xs tracking-wider uppercase transition-all border ${
+      className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
         active
-          ? 'bg-stamp-red text-paper border-stamp-red'
-          : 'bg-paper text-ink-light border-border hover:border-ink'
+          ? 'bg-stamp-red text-white border-stamp-red'
+          : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
       }`}
     >
       {children}

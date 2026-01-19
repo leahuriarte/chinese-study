@@ -105,7 +105,7 @@ export default function Login() {
         {/* Footer decoration */}
         <div className="flex items-center justify-center gap-4 py-8 text-border">
           <div className="w-8 h-px bg-border" />
-          <span className="text-xs tracking-[0.3em] uppercase">Est. 2024</span>
+          <span className="text-xs tracking-[0.3em] uppercase">Est. 2026</span>
           <div className="w-8 h-px bg-border" />
         </div>
       </div>

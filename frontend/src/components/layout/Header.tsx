@@ -31,7 +31,7 @@ export default function Header() {
                 Chinese Study
               </span>
               <span className="text-[0.6rem] tracking-[0.2em] text-ink-light uppercase">
-                Since 2024
+                Since 2026
               </span>
             </div>
           </Link>
