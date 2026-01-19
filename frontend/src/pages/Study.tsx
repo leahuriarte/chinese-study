@@ -107,8 +107,8 @@ export default function Study() {
 
   // Initialize card queue for Mastery/Quick modes
   useEffect(() => {
-    if (sessionType !== 'srs' && allCardsData && cardQueue.length === 0 && !showModeSelector) {
-      const shuffled = [...allCardsData]
+    if (sessionType !== 'srs' && allCardsData?.cards && cardQueue.length === 0 && !showModeSelector) {
+      const shuffled = [...allCardsData.cards]
         .sort(() => Math.random() - 0.5)
         .map(card => ({ ...card, correctCount: 0, totalAttempts: 0 }));
       setCardQueue(shuffled);
@@ -284,10 +284,10 @@ export default function Study() {
     if (sessionType === 'srs') {
       return { current: currentIndex, total: srsCards.length };
     } else if (sessionType === 'quick') {
-      const total = (allCardsData?.length || 0);
+      const total = (allCardsData?.cards?.length || 0);
       return { current: completedCards.size, total };
     } else {
-      const total = (allCardsData?.length || 0);
+      const total = (allCardsData?.cards?.length || 0);
       return { current: masteredCards.size, total };
     }
   };
