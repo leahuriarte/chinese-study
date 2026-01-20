@@ -60,7 +60,7 @@ export default function Stats() {
             <div className="font-display text-5xl font-bold text-stamp-red">
               {stats?.dueCounts.reduce((sum, item) => sum + item.count, 0) || 0}
             </div>
-            <div className="text-xs text-ink-light mt-2">Awaiting review</div>
+            <div className="text-xs text-ink-light mt-2">Awaiting review (not implemented yet)</div>
           </div>
         </div>
       </div>
@@ -69,7 +69,7 @@ export default function Stats() {
       {stats?.dueCounts && stats.dueCounts.length > 0 && (
         <div className="document-card p-6 mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <span className="field-label">Due by Mode</span>
+            <span className="field-label">Due by Mode (not implemented yet)</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 

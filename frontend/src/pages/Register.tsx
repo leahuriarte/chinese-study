@@ -49,7 +49,7 @@ export default function Register() {
             Create Account
           </h1>
           <p className="text-ink-light text-sm tracking-widest uppercase">
-            Join Chinese Study
+            Join Chinese Study Buddy
           </p>
         </div>
 

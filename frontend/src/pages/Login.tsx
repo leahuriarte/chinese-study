@@ -34,7 +34,7 @@ export default function Login() {
             <span className="font-chinese">汉</span>
           </div>
           <h1 className="font-display text-4xl font-bold text-ink mb-2">
-            Chinese Study
+            Chinese Study Buddy
           </h1>
           <p className="text-ink-light text-sm tracking-widest uppercase">
             学习中文

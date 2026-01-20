@@ -31,7 +31,7 @@ export default function Home() {
           <span className="field-label">Welcome</span>
         </div>
         <h1 className="font-display text-5xl md:text-6xl font-bold mb-4 text-ink tracking-tight">
-          Chinese Study
+          Chinese Study Buddy
         </h1>
         <p className="text-ink-light text-lg font-chinese tracking-wide">
           你覺得中文難不難？
@@ -67,7 +67,7 @@ export default function Home() {
           <StatCard
             label="Cards Due"
             value={totalDue}
-            annotation="Awaiting review"
+            annotation="Awaiting review (ignore this for now, not implemented yet)"
             highlight={totalDue > 0}
           />
         </div>
@@ -77,7 +77,7 @@ export default function Home() {
       {stats?.dueCounts && stats.dueCounts.some(item => item.count > 0) && (
         <div className="document-card p-6 mb-10">
           <div className="flex items-center gap-3 mb-6">
-            <span className="field-label">Due by Mode</span>
+            <span className="field-label">Due by Mode (Ignore for Now)</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 

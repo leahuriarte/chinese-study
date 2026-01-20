@@ -411,15 +411,18 @@ export default function Study() {
               <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}>
                 Part 1
               </FilterButton>
+              <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLesson(null); }}>
+                Part 2
+              </FilterButton>
             </div>
 
-            {selectedPart === 1 && (
+            {selectedPart !== null && (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
                 <FilterButton active={selectedLesson === null} onClick={() => setSelectedLesson(null)}>
                   All
                 </FilterButton>
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lesson) => (
+                {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
                   <FilterButton
                     key={lesson}
                     active={selectedLesson === lesson}
