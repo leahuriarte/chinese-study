@@ -28,10 +28,10 @@ export default function Header() {
             </div>
             <div className="flex flex-col">
               <span className="font-display text-lg tracking-wide text-ink" style={{ fontStyle: 'italic' }}>
-                Chinese Study
+                Chinese Study Buddy
               </span>
               <span className="text-[0.6rem] tracking-[0.2em] text-ink-light uppercase">
-                Since 2026
+                Built 2026
               </span>
             </div>
           </Link>

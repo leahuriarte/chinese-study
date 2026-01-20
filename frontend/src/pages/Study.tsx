@@ -450,7 +450,7 @@ export default function Study() {
               onClick={() => setWritingMode('stroke_order')}
               icon="笔"
               title="Stroke Order"
-              description="Guided practice with stroke validation"
+              description="Guided practice with stroke validation (still in development)"
             />
             <WritingModeButton
               active={writingMode === 'freehand'}
