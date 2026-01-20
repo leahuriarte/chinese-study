@@ -357,7 +357,7 @@ export default function Study() {
           <div className="inline-block mb-4">
             <span className="field-label">Study</span>
           </div>
-          <h1 className="font-display text-4xl font-bold text-ink mb-2">
+          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2">
             Study Mode
           </h1>
           <p className="text-ink-light text-sm">Choose how you want to practice today</p>
@@ -518,7 +518,7 @@ export default function Study() {
           <div className="seal-stamp mx-auto mb-8 animate-stamp-press bg-green-50 border-green-600 text-green-600">
             <span className="font-chinese">成</span>
           </div>
-          <h1 className="font-display text-3xl font-bold text-ink mb-4">
+          <h1 className="display-title text-3xl md:text-4xl text-ink mb-4">
             {sessionType === 'mastery' ? 'All Cards Mastered!' : 'All Done!'}
           </h1>
           <p className="text-ink-light mb-2">
@@ -555,7 +555,7 @@ export default function Study() {
       {/* Header */}
       <div className="mb-6 flex justify-between items-start">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">{currentModeLabel}</h1>
+          <h1 className="display-title text-2xl md:text-3xl text-ink">{currentModeLabel}</h1>
           <div className="flex items-center gap-3 mt-2">
             <button
               onClick={changeMode}
@@ -577,7 +577,7 @@ export default function Study() {
           <div className="text-xs tracking-wider uppercase text-ink-light">
             {sessionType === 'mastery' ? 'Mastered' : 'Progress'}
           </div>
-          <div className="font-display text-2xl font-bold text-ink">
+          <div className="font-display-alt text-2xl font-semibold text-ink">
             {progress.current} / {progress.total}
           </div>
           {sessionType === 'mastery' && currentCardProgress && (
@@ -668,7 +668,7 @@ export default function Study() {
               }`}>
                 <span className="font-chinese">{wasCorrect ? '对' : '错'}</span>
               </div>
-              <div className={`font-display text-2xl font-bold ${wasCorrect ? 'text-green-600' : 'text-stamp-red'}`}>
+              <div className={`display-title text-2xl ${wasCorrect ? 'text-green-600' : 'text-stamp-red'}`}>
                 {wasCorrect ? 'Correct!' : 'Incorrect'}
               </div>
               {sessionType === 'mastery' && wasCorrect && currentCardProgress && (

@@ -32,7 +32,7 @@ export default function Stats() {
         <div className="inline-block mb-4">
           <span className="field-label">Analytics</span>
         </div>
-        <h1 className="font-display text-4xl font-bold text-ink">Your Stats</h1>
+        <h1 className="display-title text-4xl md:text-5xl text-ink">Your Stats</h1>
       </div>
 
       {/* Overview Stats */}
@@ -45,19 +45,19 @@ export default function Stats() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 border border-border">
             <div className="text-xs tracking-wider uppercase text-ink-light mb-4">Total Cards</div>
-            <div className="font-display text-5xl font-bold text-ink">{stats?.totalCards || 0}</div>
+            <div className="font-display-alt text-5xl font-semibold text-ink">{stats?.totalCards || 0}</div>
             <div className="text-xs text-ink-light mt-2">In your collection</div>
           </div>
 
           <div className="p-6 border border-border">
             <div className="text-xs tracking-wider uppercase text-ink-light mb-4">Total Reviews</div>
-            <div className="font-display text-5xl font-bold text-ink">{stats?.totalReviews || 0}</div>
+            <div className="font-display-alt text-5xl font-semibold text-ink">{stats?.totalReviews || 0}</div>
             <div className="text-xs text-ink-light mt-2">Completed</div>
           </div>
 
           <div className="p-6 border border-stamp-red bg-stamp-red-light/20">
             <div className="text-xs tracking-wider uppercase text-ink-light mb-4">Cards Due Today</div>
-            <div className="font-display text-5xl font-bold text-stamp-red">
+            <div className="font-display-alt text-5xl font-semibold text-stamp-red">
               {stats?.dueCounts.reduce((sum, item) => sum + item.count, 0) || 0}
             </div>
             <div className="text-xs text-ink-light mt-2">Awaiting review (not implemented yet)</div>
@@ -83,7 +83,7 @@ export default function Stats() {
                     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
                     .join(' ')}
                 </span>
-                <span className={`font-display text-2xl font-bold ${
+                <span className={`font-display-alt text-2xl font-semibold ${
                   item.count > 0 ? 'text-stamp-red' : 'text-border'
                 }`}>
                   {item.count}

@@ -22,7 +22,8 @@ export default {
         grid: '#e8e0d4',
       },
       fontFamily: {
-        display: ['Playfair Display', 'Noto Serif SC', 'serif'],
+        display: ['Instrument Serif', 'Noto Serif SC', 'Georgia', 'serif'],
+        'display-alt': ['Cormorant Garamond', 'Noto Serif SC', 'Georgia', 'serif'],
         mono: ['Space Mono', 'Courier New', 'monospace'],
         chinese: ['Noto Serif SC', 'Songti SC', 'serif'],
         kaiti: ['KaiTi', 'STKaiti', 'AR PL UKai CN', 'Noto Serif SC', 'serif'],
@@ -41,9 +42,9 @@ export default {
       },
       keyframes: {
         'stamp-press': {
-          '0%': { transform: 'scale(1.2) rotate(-5deg)', opacity: '0' },
-          '50%': { transform: 'scale(0.95) rotate(-5deg)' },
-          '100%': { transform: 'scale(1) rotate(-5deg)', opacity: '1' },
+          '0%': { transform: 'scale(1.2) rotate(-3deg)', opacity: '0' },
+          '50%': { transform: 'scale(0.95) rotate(-3deg)' },
+          '100%': { transform: 'scale(1) rotate(-3deg)', opacity: '1' },
         },
       },
     },

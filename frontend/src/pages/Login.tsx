@@ -33,7 +33,7 @@ export default function Login() {
           <div className="seal-stamp mx-auto mb-6 animate-stamp-press">
             <span className="font-chinese">汉</span>
           </div>
-          <h1 className="font-display text-4xl font-bold text-ink mb-2">
+          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2">
             Chinese Study Buddy
           </h1>
           <p className="text-ink-light text-sm tracking-widest uppercase">

@@ -40,7 +40,7 @@ export default function Cards() {
           <div className="inline-block mb-4">
             <span className="field-label">Collection</span>
           </div>
-          <h1 className="font-display text-4xl font-bold text-ink">My Cards</h1>
+          <h1 className="display-title text-4xl md:text-5xl text-ink">My Cards</h1>
         </div>
         <button
           onClick={() => setIsAddingCard(true)}

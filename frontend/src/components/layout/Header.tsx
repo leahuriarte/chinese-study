@@ -27,7 +27,7 @@ export default function Header() {
               汉
             </div>
             <div className="flex flex-col">
-              <span className="font-display text-lg font-bold tracking-wide text-ink uppercase">
+              <span className="font-display text-lg tracking-wide text-ink" style={{ fontStyle: 'italic' }}>
                 Chinese Study
               </span>
               <span className="text-[0.6rem] tracking-[0.2em] text-ink-light uppercase">

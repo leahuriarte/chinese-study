@@ -45,7 +45,7 @@ export default function Register() {
           <div className="seal-stamp mx-auto mb-6 animate-stamp-press">
             <span className="font-chinese">新</span>
           </div>
-          <h1 className="font-display text-4xl font-bold text-ink mb-2">
+          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2">
             Create Account
           </h1>
           <p className="text-ink-light text-sm tracking-widest uppercase">

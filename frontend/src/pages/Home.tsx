@@ -30,10 +30,10 @@ export default function Home() {
         <div className="inline-block mb-6">
           <span className="field-label">Welcome</span>
         </div>
-        <h1 className="font-display text-5xl md:text-6xl font-bold mb-4 text-ink tracking-tight">
+        <h1 className="display-title text-5xl md:text-7xl mb-6 text-ink">
           Chinese Study Buddy
         </h1>
-        <p className="text-ink-light text-lg font-chinese tracking-wide">
+        <p className="editorial-subtitle text-ink-light text-xl tracking-wide">
           你覺得中文難不難？
         </p>
 
@@ -94,7 +94,7 @@ export default function Home() {
                 <span className="text-xs tracking-wider uppercase text-ink-light">
                   {formatModeName(item.mode)}
                 </span>
-                <span className={`font-display text-2xl font-bold ${
+                <span className={`font-display-alt text-2xl font-semibold ${
                   item.count > 0 ? 'text-stamp-red' : 'text-border'
                 }`}>
                   {item.count}
@@ -118,7 +118,7 @@ export default function Home() {
             </div>
           </div>
 
-          <h2 className="font-display text-2xl font-bold text-ink mb-2">
+          <h2 className="display-title text-2xl text-ink mb-2">
             Start Studying
           </h2>
           <p className="text-ink-light text-sm mb-6">Review your cards and practice</p>
@@ -149,7 +149,7 @@ export default function Home() {
             </div>
           </div>
 
-          <h2 className="font-display text-2xl font-bold text-ink mb-2">
+          <h2 className="display-title text-2xl text-ink mb-2">
             Manage Cards
           </h2>
           <p className="text-ink-light text-sm mb-6">Add, edit, and organize vocabulary</p>
@@ -194,7 +194,7 @@ function StatCard({
         <span className="text-xs tracking-wider uppercase text-ink-light">{label}</span>
         {highlight && <span className="w-2 h-2 bg-stamp-red rounded-full animate-pulse" />}
       </div>
-      <div className={`font-display text-5xl font-bold mb-2 ${highlight ? 'text-stamp-red' : 'text-ink'}`}>
+      <div className={`font-display-alt text-5xl font-semibold mb-2 ${highlight ? 'text-stamp-red' : 'text-ink'}`}>
         {value.toLocaleString()}
       </div>
       <div className="text-xs text-ink-light tracking-wider">{annotation}</div>
