@@ -19,7 +19,14 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   const [showComparison, setShowComparison] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
-  const [penSize, setPenSize] = useState(8);
+  const [penSize, setPenSizeState] = useState(() => {
+    const saved = localStorage.getItem('freehand-pen-size');
+    return saved ? parseInt(saved, 10) : 8;
+  });
+  const setPenSize = (size: number) => {
+    setPenSizeState(size);
+    localStorage.setItem('freehand-pen-size', size.toString());
+  };
   const [isEraser, setIsEraser] = useState(false);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -87,10 +94,9 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
 
     // Reset to drawing settings
     ctx.strokeStyle = '#c54b3c';
-    ctx.lineWidth = penSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-  }, [penSize]);
+  }, []);
 
   useEffect(() => {
     if (writingMode !== 'freehand' || !canvasRef.current) return;

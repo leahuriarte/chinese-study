@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import type { Card } from '../types';
 
 export default function Cards() {
   const [isAddingCard, setIsAddingCard] = useState(false);
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
@@ -167,7 +169,13 @@ export default function Cards() {
                 )}
 
                 {/* Actions */}
-                <div className="pt-4 border-t border-dashed border-border">
+                <div className="pt-4 border-t border-dashed border-border flex gap-4">
+                  <button
+                    onClick={() => setEditingCard(card)}
+                    className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
+                  >
+                    Edit
+                  </button>
                   <button
                     onClick={() => handleDelete(card.id)}
                     className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
@@ -182,6 +190,7 @@ export default function Cards() {
       )}
 
       {isAddingCard && <AddCardModal onClose={() => setIsAddingCard(false)} />}
+      {editingCard && <EditCardModal card={editingCard} onClose={() => setEditingCard(null)} />}
     </div>
   );
 }
@@ -206,6 +215,157 @@ function FilterButton({
     >
       {children}
     </button>
+  );
+}
+
+function EditCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
+  const [formData, setFormData] = useState({
+    hanzi: card.hanzi,
+    pinyin: card.pinyin,
+    pinyinDisplay: card.pinyinDisplay,
+    english: card.english,
+    tags: card.tags.join(', '),
+    textbookPart: card.textbookPart?.toString() || '1',
+    lessonNumber: card.lessonNumber?.toString() || '',
+  });
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (data: any) => api.updateCard(card.id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cards'] });
+      onClose();
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateMutation.mutate({
+      hanzi: formData.hanzi,
+      pinyin: formData.pinyin,
+      pinyinDisplay: formData.pinyinDisplay,
+      english: formData.english,
+      tags: formData.tags.split(',').map((t) => t.trim()).filter(Boolean),
+      textbookPart: formData.textbookPart ? parseInt(formData.textbookPart) : undefined,
+      lessonNumber: formData.lessonNumber ? parseInt(formData.lessonNumber) : undefined,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-ink/50 flex items-center justify-center p-4 z-50">
+      <div className="document-card p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <span className="field-label">Edit Card</span>
+          <div className="flex-1 border-t border-dashed border-border" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Hanzi</label>
+            <input
+              type="text"
+              value={formData.hanzi}
+              onChange={(e) => setFormData({ ...formData, hanzi: e.target.value })}
+              className="w-full text-2xl font-chinese text-center"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Pinyin (with numbers)</label>
+            <input
+              type="text"
+              value={formData.pinyin}
+              onChange={(e) => setFormData({ ...formData, pinyin: e.target.value })}
+              className="w-full"
+              placeholder="ni3 hao3"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Pinyin Display (with marks)</label>
+            <input
+              type="text"
+              value={formData.pinyinDisplay}
+              onChange={(e) => setFormData({ ...formData, pinyinDisplay: e.target.value })}
+              className="w-full"
+              placeholder="nǐ hǎo"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">English</label>
+            <input
+              type="text"
+              value={formData.english}
+              onChange={(e) => setFormData({ ...formData, english: e.target.value })}
+              className="w-full"
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Part</label>
+              <select
+                value={formData.textbookPart}
+                onChange={(e) => setFormData({ ...formData, textbookPart: e.target.value })}
+                className="w-full"
+              >
+                <option value="1">Part 1</option>
+                <option value="2">Part 2</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Lesson</label>
+              <select
+                value={formData.lessonNumber}
+                onChange={(e) => setFormData({ ...formData, lessonNumber: e.target.value })}
+                className="w-full"
+              >
+                <option value="">None</option>
+                {(formData.textbookPart === '1' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
+                  <option key={lesson} value={lesson.toString()}>
+                    Lesson {lesson}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Tags (comma-separated)</label>
+            <input
+              type="text"
+              value={formData.tags}
+              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              className="w-full"
+              placeholder="greetings, verbs"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-6 border-t border-dashed border-border">
+            <button
+              type="button"
+              onClick={onClose}
+              className="vintage-btn flex-1"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={updateMutation.isPending}
+              className="vintage-btn vintage-btn-primary flex-1 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }
 
