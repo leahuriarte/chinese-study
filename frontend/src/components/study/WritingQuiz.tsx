@@ -279,7 +279,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
 
   if (writingMode === 'freehand') {
     return (
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center select-none" style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}>
         <div className="text-center mb-6">
           <span className="field-label mb-4 inline-block">Prompt</span>
           <div className="text-3xl font-display text-ink mt-4">{prompt}</div>
