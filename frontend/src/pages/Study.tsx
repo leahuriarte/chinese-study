@@ -262,8 +262,14 @@ export default function Study() {
     if (sessionType === 'srs') {
       setCurrentIndex((prev) => prev + 1);
     } else if (sessionType === 'quick') {
-      setCompletedCards(prev => new Set(prev).add(currentCard.id));
-      setCardQueue(prev => prev.slice(1));
+      if (wasCorrect) {
+        // Correct: remove from queue and mark as completed
+        setCompletedCards(prev => new Set(prev).add(currentCard.id));
+        setCardQueue(prev => prev.slice(1));
+      } else {
+        // Wrong: move to back of queue to try again
+        setCardQueue(prev => [...prev.slice(1), prev[0]]);
+      }
     } else if (sessionType === 'mastery') {
       const currentCardWithProgress = cardQueue[0];
 
@@ -701,7 +707,7 @@ export default function Study() {
                 </div>
               )}
 
-              {!wasCorrect && !wasOverridden && (
+              {!wasCorrect && !wasOverridden && !(writingMode === 'freehand' && (mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi')) && (
                 <button
                   onClick={handleOverrideCorrect}
                   className="w-full py-3 bg-cream text-ink-light border border-border hover:border-ink text-xs tracking-wider uppercase transition"

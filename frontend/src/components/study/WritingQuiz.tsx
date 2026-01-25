@@ -19,6 +19,9 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
   const [showComparison, setShowComparison] = useState(false);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
+  const [penSize, setPenSize] = useState(8);
+  const [isEraser, setIsEraser] = useState(false);
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   const characters = Array.from(card.hanzi);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
@@ -59,12 +62,10 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     };
   }, [card.hanzi, showHint, writingMode, currentCharIndex, characters]);
 
-  useEffect(() => {
-    if (writingMode !== 'freehand' || !canvasRef.current) return;
-
+  const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = 300 * dpr;
@@ -73,11 +74,8 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
 
     ctx.fillStyle = '#faf6ee';
     ctx.fillRect(0, 0, 300, 300);
-    ctx.strokeStyle = '#c54b3c';
-    ctx.lineWidth = 8;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
 
+    // Draw guide lines
     ctx.strokeStyle = '#d4c8b8';
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -87,9 +85,17 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     ctx.lineTo(300, 150);
     ctx.stroke();
 
+    // Reset to drawing settings
     ctx.strokeStyle = '#c54b3c';
-    ctx.lineWidth = 8;
-  }, [writingMode, card.hanzi]);
+    ctx.lineWidth = penSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }, [penSize]);
+
+  useEffect(() => {
+    if (writingMode !== 'freehand' || !canvasRef.current) return;
+    initCanvas();
+  }, [writingMode, card.hanzi, initCanvas]);
 
   const getCanvasCoordinates = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -112,57 +118,75 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     };
   }, []);
 
-  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const startDrawing = useCallback((x: number, y: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
     setIsDrawing(true);
-    setHasDrawn(true);
-    const { x, y } = getCanvasCoordinates(e);
+    if (!isEraser) setHasDrawn(true);
+    lastPointRef.current = { x, y };
+
+    // Set up stroke style
+    ctx.strokeStyle = isEraser ? '#faf6ee' : '#c54b3c';
+    ctx.lineWidth = isEraser ? penSize * 2 : penSize;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
     ctx.beginPath();
     ctx.moveTo(x, y);
-  }, [getCanvasCoordinates]);
+  }, [isEraser, penSize]);
 
-  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+  const draw = useCallback((x: number, y: number) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
+    if (!ctx || !lastPointRef.current) return;
 
-    const { x, y } = getCanvasCoordinates(e);
-    ctx.lineTo(x, y);
+    // Use quadratic curve for smoother lines
+    const midX = (lastPointRef.current.x + x) / 2;
+    const midY = (lastPointRef.current.y + y) / 2;
+
+    ctx.quadraticCurveTo(lastPointRef.current.x, lastPointRef.current.y, midX, midY);
     ctx.stroke();
-  }, [isDrawing, getCanvasCoordinates]);
+
+    // Continue the path from the midpoint
+    ctx.beginPath();
+    ctx.moveTo(midX, midY);
+
+    lastPointRef.current = { x, y };
+  }, [isDrawing]);
+
+  const stopDrawing = useCallback(() => {
+    setIsDrawing(false);
+    lastPointRef.current = null;
+  }, []);
+
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCanvasCoordinates(e);
+    startDrawing(x, y);
+  }, [getCanvasCoordinates, startDrawing]);
+
+  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const { x, y } = getCanvasCoordinates(e);
+    draw(x, y);
+  }, [getCanvasCoordinates, draw]);
 
   const handleCanvasMouseUp = useCallback(() => {
-    setIsDrawing(false);
-  }, []);
+    stopDrawing();
+  }, [stopDrawing]);
 
   const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
-    setIsDrawing(true);
-    setHasDrawn(true);
     const { x, y } = getCanvasCoordinates(e);
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  }, [getCanvasCoordinates]);
+    startDrawing(x, y);
+  }, [getCanvasCoordinates, startDrawing]);
 
   const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx) return;
-
     const { x, y } = getCanvasCoordinates(e);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-  }, [isDrawing, getCanvasCoordinates]);
+    draw(x, y);
+  }, [getCanvasCoordinates, draw]);
 
   const handleQuiz = () => {
     if (!writer) return;
@@ -219,31 +243,10 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         }
       }
     } else {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (!ctx || !canvas) return;
-
-      const dpr = window.devicePixelRatio || 1;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-
-      ctx.fillStyle = '#faf6ee';
-      ctx.fillRect(0, 0, 300, 300);
-
-      ctx.strokeStyle = '#d4c8b8';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(150, 0);
-      ctx.lineTo(150, 300);
-      ctx.moveTo(0, 150);
-      ctx.lineTo(300, 150);
-      ctx.stroke();
-
-      ctx.strokeStyle = '#c54b3c';
-      ctx.lineWidth = 8;
-
+      initCanvas();
       setHasDrawn(false);
       setShowComparison(false);
+      setIsEraser(false);
     }
   };
 
@@ -281,7 +284,51 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           <span className="field-label mb-4 inline-block">Prompt</span>
           <div className="text-3xl font-display text-ink mt-4">{prompt}</div>
         </div>
-        <p className="text-center text-ink-light text-sm mb-6">Draw the character freely</p>
+
+        {/* Pen controls */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEraser(false)}
+              className={`px-3 py-1.5 text-xs tracking-wider uppercase border-2 transition ${
+                !isEraser
+                  ? 'bg-stamp-red border-stamp-red text-white'
+                  : 'border-border text-ink-light hover:border-stamp-red'
+              }`}
+            >
+              Pen
+            </button>
+            <button
+              onClick={() => setIsEraser(true)}
+              className={`px-3 py-1.5 text-xs tracking-wider uppercase border-2 transition ${
+                isEraser
+                  ? 'bg-stamp-red border-stamp-red text-white'
+                  : 'border-border text-ink-light hover:border-stamp-red'
+              }`}
+            >
+              Eraser
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-ink-light">Size:</span>
+            {[4, 8, 14, 22].map((size) => (
+              <button
+                key={size}
+                onClick={() => setPenSize(size)}
+                className={`w-8 h-8 flex items-center justify-center border-2 transition ${
+                  penSize === size
+                    ? 'border-stamp-red'
+                    : 'border-border hover:border-stamp-red'
+                }`}
+              >
+                <div
+                  className="rounded-full bg-stamp-red"
+                  style={{ width: size, height: size }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="flex gap-6 items-start">
           <div className="flex flex-col items-center">
@@ -289,7 +336,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
               ref={canvasRef}
               width={300}
               height={300}
-              className="border border-border cursor-crosshair touch-none bg-paper"
+              className={`border border-border touch-none bg-paper ${isEraser ? 'cursor-cell' : 'cursor-crosshair'}`}
               style={{ width: 300, height: 300 }}
               onMouseDown={handleCanvasMouseDown}
               onMouseMove={handleCanvasMouseMove}
@@ -343,19 +390,18 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
             </>
           ) : (
             <>
-              <p className="text-center text-ink text-sm">Did you get it right?</p>
               <div className="flex gap-3">
                 <button
                   onClick={handleFreehandCorrect}
                   className="flex-1 py-3 bg-green-600 text-paper border-2 border-green-600 text-xs tracking-wider uppercase hover:bg-green-700 hover:border-green-700 transition"
                 >
-                  Yes, Correct
+                  Got it
                 </button>
                 <button
                   onClick={handleFreehandIncorrect}
                   className="vintage-btn vintage-btn-primary flex-1"
                 >
-                  No, Incorrect
+                  Missed it
                 </button>
               </div>
               <button
@@ -368,9 +414,6 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           )}
         </div>
 
-        <p className="text-xs text-ink-light mt-4 text-center tracking-wider">
-          Draw the character, then compare with the answer and self-assess.
-        </p>
       </div>
     );
   }
