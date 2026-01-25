@@ -1,4 +1,12 @@
 import prisma from '../db.js';
+import { integratedChineseVocab } from '../data/integratedChineseVocab.js';
+import { integratedChineseVocabPart2 } from '../data/integratedChineseVocabPart2.js';
+
+// Set of all pre-seeded hanzi for quick lookup
+const preSeededHanzi = new Set([
+  ...integratedChineseVocab.map(v => v.hanzi),
+  ...integratedChineseVocabPart2.map(v => v.hanzi),
+]);
 
 export interface CreateCardData {
   hanzi: string;
@@ -128,6 +136,27 @@ export const cardService = {
 
     if (!card) {
       throw new Error('Card not found');
+    }
+
+    // If this is a pre-seeded card, track it so it doesn't get re-seeded
+    if (preSeededHanzi.has(card.hanzi)) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { settings: true },
+      });
+
+      const settings = (user?.settings as Record<string, any>) || {};
+      const deletedVocab: string[] = settings.deletedVocab || [];
+
+      if (!deletedVocab.includes(card.hanzi)) {
+        deletedVocab.push(card.hanzi);
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            settings: { ...settings, deletedVocab },
+          },
+        });
+      }
     }
 
     await prisma.card.delete({

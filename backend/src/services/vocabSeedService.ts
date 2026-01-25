@@ -8,6 +8,7 @@ const allIntegratedChineseVocab = [...integratedChineseVocab, ...integratedChine
 /**
  * Seeds the Integrated Chinese Part 1 Level 1 & 2 vocabulary for a user.
  * This function checks if the user already has these cards to avoid duplicates.
+ * It also respects cards that the user has deliberately deleted.
  */
 export async function seedVocabForUser(userId: string): Promise<{ created: number; skipped: number }> {
   // Get existing hanzi for this user to avoid duplicates
@@ -18,8 +19,20 @@ export async function seedVocabForUser(userId: string): Promise<{ created: numbe
 
   const existingHanzi = new Set(existingCards.map(c => c.hanzi));
 
-  // Filter out vocab that already exists
-  const newVocab = allIntegratedChineseVocab.filter(v => !existingHanzi.has(v.hanzi));
+  // Get user's deleted vocab list from settings
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { settings: true },
+  });
+
+  const settings = (user?.settings as Record<string, any>) || {};
+  const deletedVocab: string[] = settings.deletedVocab || [];
+  const deletedHanzi = new Set(deletedVocab);
+
+  // Filter out vocab that already exists OR was deliberately deleted
+  const newVocab = allIntegratedChineseVocab.filter(
+    v => !existingHanzi.has(v.hanzi) && !deletedHanzi.has(v.hanzi)
+  );
 
   if (newVocab.length === 0) {
     return { created: 0, skipped: allIntegratedChineseVocab.length };
@@ -54,15 +67,18 @@ export async function seedVocabForUser(userId: string): Promise<{ created: numbe
  */
 export async function seedVocabForAllUsers(): Promise<{ usersProcessed: number; totalCardsCreated: number }> {
   const users = await prisma.user.findMany({
-    select: { id: true },
+    select: { id: true, settings: true },
   });
 
   let totalCardsCreated = 0;
 
   for (const user of users) {
+    const settings = (user.settings as Record<string, any>) || {};
+    const deletedCount = (settings.deletedVocab as string[] || []).length;
+
     const result = await seedVocabForUser(user.id);
     totalCardsCreated += result.created;
-    console.log(`User ${user.id}: created ${result.created} cards, skipped ${result.skipped}`);
+    console.log(`User ${user.id}: created ${result.created} cards, skipped ${result.skipped} (${deletedCount} deliberately deleted)`);
   }
 
   return {

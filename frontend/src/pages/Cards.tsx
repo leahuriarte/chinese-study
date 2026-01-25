@@ -23,7 +23,36 @@ export default function Cards() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => api.deleteCard(id),
-    onSuccess: () => {
+    onMutate: async (deletedId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['cards'] });
+
+      // Snapshot previous value
+      const previousData = queryClient.getQueryData(['cards', searchTerm, selectedPart, selectedLesson]);
+
+      // Optimistically remove the card
+      queryClient.setQueryData(
+        ['cards', searchTerm, selectedPart, selectedLesson],
+        (old: any) => old ? {
+          ...old,
+          cards: old.cards.filter((card: Card) => card.id !== deletedId),
+        } : old
+      );
+
+      return { previousData };
+    },
+    onError: (_err, _deletedId, context) => {
+      // Rollback on error
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          ['cards', searchTerm, selectedPart, selectedLesson],
+          context.previousData
+        );
+      }
+      alert('Failed to delete card. Please try again.');
+    },
+    onSettled: () => {
+      // Refetch to ensure sync with server
       queryClient.invalidateQueries({ queryKey: ['cards'] });
     },
   });
