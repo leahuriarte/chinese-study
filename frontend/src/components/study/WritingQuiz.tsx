@@ -28,6 +28,14 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     localStorage.setItem('freehand-pen-size', size.toString());
   };
   const [isEraser, setIsEraser] = useState(false);
+  const [stylusOnly, setStylusOnlyState] = useState(() => {
+    const saved = localStorage.getItem('freehand-stylus-only');
+    return saved === 'true';
+  });
+  const setStylusOnly = (enabled: boolean) => {
+    setStylusOnlyState(enabled);
+    localStorage.setItem('freehand-stylus-only', enabled.toString());
+  };
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   const characters = Array.from(card.hanzi);
@@ -103,27 +111,6 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     initCanvas();
   }, [writingMode, card.hanzi, initCanvas]);
 
-  const getCanvasCoordinates = useCallback((e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
-    let clientX, clientY;
-
-    if ('touches' in e) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  }, []);
-
   const startDrawing = useCallback((x: number, y: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -168,31 +155,38 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
     lastPointRef.current = null;
   }, []);
 
-  const handleCanvasMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const { x, y } = getCanvasCoordinates(e);
+  // Check if input should be allowed based on stylus-only mode
+  const shouldAllowInput = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!stylusOnly) return true;
+    // Only allow pen input when stylus-only mode is enabled
+    return e.pointerType === 'pen';
+  }, [stylusOnly]);
+
+  const handleCanvasPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!shouldAllowInput(e)) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     startDrawing(x, y);
-  }, [getCanvasCoordinates, startDrawing]);
+  }, [shouldAllowInput, startDrawing]);
 
-  const handleCanvasMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
-    const { x, y } = getCanvasCoordinates(e);
+  const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!shouldAllowInput(e)) return;
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     draw(x, y);
-  }, [getCanvasCoordinates, draw]);
+  }, [shouldAllowInput, draw]);
 
-  const handleCanvasMouseUp = useCallback(() => {
+  const handleCanvasPointerUp = useCallback(() => {
     stopDrawing();
   }, [stopDrawing]);
-
-  const handleCanvasTouchStart = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const { x, y } = getCanvasCoordinates(e);
-    startDrawing(x, y);
-  }, [getCanvasCoordinates, startDrawing]);
-
-  const handleCanvasTouchMove = useCallback((e: React.TouchEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    const { x, y } = getCanvasCoordinates(e);
-    draw(x, y);
-  }, [getCanvasCoordinates, draw]);
 
   const handleQuiz = () => {
     if (!writer) return;
@@ -292,7 +286,7 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         </div>
 
         {/* Pen controls */}
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsEraser(false)}
@@ -334,6 +328,17 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
               </button>
             ))}
           </div>
+          <button
+            onClick={() => setStylusOnly(!stylusOnly)}
+            className={`px-3 py-1.5 text-xs tracking-wider uppercase border-2 transition ${
+              stylusOnly
+                ? 'bg-stamp-red border-stamp-red text-white'
+                : 'border-border text-ink-light hover:border-stamp-red'
+            }`}
+            title="When enabled, only Apple Pencil/stylus input is accepted (palm rejection)"
+          >
+            ✏️ Stylus Only
+          </button>
         </div>
 
         <div className="flex gap-6 items-start">
@@ -343,14 +348,19 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
               width={300}
               height={300}
               className={`border border-border touch-none bg-paper ${isEraser ? 'cursor-cell' : 'cursor-crosshair'}`}
-              style={{ width: 300, height: 300 }}
-              onMouseDown={handleCanvasMouseDown}
-              onMouseMove={handleCanvasMouseMove}
-              onMouseUp={handleCanvasMouseUp}
-              onMouseLeave={handleCanvasMouseUp}
-              onTouchStart={handleCanvasTouchStart}
-              onTouchMove={handleCanvasTouchMove}
-              onTouchEnd={handleCanvasMouseUp}
+              style={{
+                width: 300,
+                height: 300,
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                WebkitTouchCallout: 'none',
+              }}
+              draggable={false}
+              onPointerDown={handleCanvasPointerDown}
+              onPointerMove={handleCanvasPointerMove}
+              onPointerUp={handleCanvasPointerUp}
+              onPointerLeave={handleCanvasPointerUp}
+              onPointerCancel={handleCanvasPointerUp}
             />
             <span className="text-xs text-ink-light tracking-wider uppercase mt-2">Your drawing</span>
           </div>
@@ -358,8 +368,8 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
           {showComparison && (
             <div className="flex flex-col items-center">
               <div
-                className="border border-border flex items-center justify-center bg-paper overflow-hidden"
-                style={{ width: 300, height: 300 }}
+                className="border border-border flex items-center justify-center bg-paper overflow-hidden select-none"
+                style={{ width: 300, height: 300, WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
               >
                 <span
                   className="leading-none font-chinese text-stamp-red"
