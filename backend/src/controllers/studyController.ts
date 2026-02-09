@@ -12,6 +12,7 @@ const reviewSchema = z.object({
     'english_to_pinyin',
     'pinyin_to_hanzi',
     'hanzi_to_english',
+    'english_pinyin_to_hanzi',
   ]),
   quality: z.number().min(0).max(5),
   responseTimeMs: z.number(),

@@ -7,7 +7,8 @@ type QuizMode =
   | 'english_to_hanzi'
   | 'english_to_pinyin'
   | 'pinyin_to_hanzi'
-  | 'hanzi_to_english';
+  | 'hanzi_to_english'
+  | 'english_pinyin_to_hanzi';
 
 export interface ReviewSubmission {
   cardId: string;
@@ -182,6 +183,7 @@ export const studyService = {
       'english_to_pinyin',
       'pinyin_to_hanzi',
       'hanzi_to_english',
+      'english_pinyin_to_hanzi',
     ];
 
     const dueCounts = await Promise.all(

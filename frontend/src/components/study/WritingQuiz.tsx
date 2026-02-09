@@ -6,11 +6,12 @@ import type { WritingMode } from '../../pages/Study';
 interface WritingQuizProps {
   card: Card;
   prompt: string;
+  subPrompt?: string;
   writingMode: WritingMode;
   onComplete: (wasCorrect: boolean) => void;
 }
 
-export default function WritingQuiz({ card, prompt, writingMode, onComplete }: WritingQuizProps) {
+export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onComplete }: WritingQuizProps) {
   const writerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [writer, setWriter] = useState<any>(null);
@@ -283,6 +284,9 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
         <div className="text-center mb-6">
           <span className="field-label mb-4 inline-block">Prompt</span>
           <div className="text-3xl font-display text-ink mt-4">{prompt}</div>
+          {subPrompt && (
+            <div className="text-lg text-ink-light mt-2">{subPrompt}</div>
+          )}
         </div>
 
         {/* Pen controls */}
@@ -440,6 +444,9 @@ export default function WritingQuiz({ card, prompt, writingMode, onComplete }: W
       <div className="text-center mb-6">
         <span className="field-label mb-4 inline-block">Prompt</span>
         <div className="text-3xl font-display text-ink mt-4">{prompt}</div>
+        {subPrompt && (
+          <div className="text-lg text-ink-light mt-2">{subPrompt}</div>
+        )}
       </div>
 
       {/* Character progress indicator for multi-character cards */}

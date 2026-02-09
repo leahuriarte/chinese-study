@@ -10,6 +10,7 @@ const quizModes: { value: QuizMode; label: string; description: string; icon: st
   { value: 'pinyin_to_hanzi', label: 'Pinyin → Hanzi', description: 'See pinyin, write character', icon: '写' },
   { value: 'pinyin_to_english', label: 'Pinyin → English', description: 'See pinyin, type meaning', icon: '译' },
   { value: 'english_to_hanzi', label: 'English → Hanzi', description: 'See meaning, write character', icon: '字' },
+  { value: 'english_pinyin_to_hanzi', label: 'English + Pinyin → Hanzi', description: 'See meaning & pinyin, write character', icon: '全' },
   { value: 'english_to_pinyin', label: 'English → Pinyin', description: 'See meaning, type pinyin', icon: '音' },
 ];
 
@@ -122,6 +123,7 @@ export default function Study() {
         return card.english.toLowerCase();
       case 'pinyin_to_hanzi':
       case 'english_to_hanzi':
+      case 'english_pinyin_to_hanzi':
         return card.hanzi;
       default:
         return '';
@@ -138,6 +140,7 @@ export default function Study() {
         return card.pinyinDisplay;
       case 'english_to_hanzi':
       case 'english_to_pinyin':
+      case 'english_pinyin_to_hanzi':
         return card.english;
       default:
         return '';
@@ -154,6 +157,7 @@ export default function Study() {
         return 'Type the meaning in English';
       case 'pinyin_to_hanzi':
       case 'english_to_hanzi':
+      case 'english_pinyin_to_hanzi':
         return 'Type the character';
       default:
         return '';
@@ -614,10 +618,11 @@ export default function Study() {
       {/* Main Card */}
       <div className="document-card p-8">
         {!showResult && currentCard ? (
-          mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' ? (
+          mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' || mode === 'english_pinyin_to_hanzi' ? (
             <WritingQuiz
               card={currentCard}
               prompt={prompt}
+              subPrompt={mode === 'english_pinyin_to_hanzi' ? currentCard.pinyinDisplay : undefined}
               writingMode={writingMode}
               onComplete={handleWritingComplete}
             />
@@ -707,7 +712,7 @@ export default function Study() {
                 </div>
               )}
 
-              {!wasCorrect && !wasOverridden && !(writingMode === 'freehand' && (mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi')) && (
+              {!wasCorrect && !wasOverridden && !(writingMode === 'freehand' && (mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' || mode === 'english_pinyin_to_hanzi')) && (
                 <button
                   onClick={handleOverrideCorrect}
                   className="w-full py-3 bg-cream text-ink-light border border-border hover:border-ink text-xs tracking-wider uppercase transition"
