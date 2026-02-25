@@ -25,6 +25,7 @@ model User {
   cardProgress    CardProgress[]
   reviewLogs      ReviewLog[]
   studySessions   StudySession[]
+  folders         Folder[]
 
   @@map("users")
 }
@@ -49,9 +50,33 @@ model Card {
 
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   cardProgress      CardProgress[]
+  folderCards       FolderCard[]
 
   @@index([userId])
   @@map("cards")
+}
+
+model Folder {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards       FolderCard[]
+  @@index([userId])
+  @@map("folders")
+}
+
+model FolderCard {
+  folderId String   @map("folder_id")
+  cardId   String   @map("card_id")
+  addedAt  DateTime @default(now()) @map("added_at")
+  folder   Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  card     Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  @@id([folderId, cardId])
+  @@map("folder_cards")
 }
 
 model CardProgress {

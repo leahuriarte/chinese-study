@@ -34,6 +34,7 @@ export interface ListCardsParams {
   textbookPart?: number;
   lessonNumber?: number;
   search?: string;
+  folderId?: string;
 }
 
 export const cardService = {
@@ -49,7 +50,7 @@ export const cardService = {
   },
 
   async listCards(params: ListCardsParams) {
-    const { userId, page = 1, limit = 20, tags, hskLevel, textbookPart, lessonNumber, search } = params;
+    const { userId, page = 1, limit = 20, tags, hskLevel, textbookPart, lessonNumber, search, folderId } = params;
     const skip = (page - 1) * limit;
 
     const where: any = { userId };
@@ -68,6 +69,10 @@ export const cardService = {
 
     if (lessonNumber) {
       where.lessonNumber = lessonNumber;
+    }
+
+    if (folderId) {
+      where.folderCards = { some: { folderId } };
     }
 
     if (search) {

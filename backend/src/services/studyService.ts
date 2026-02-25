@@ -20,19 +20,23 @@ export interface ReviewSubmission {
 export interface StudyFilters {
   textbookPart?: number;
   lessonNumber?: number;
+  folderId?: string;
 }
 
 export const studyService = {
   async getDueCards(userId: string, mode: QuizMode, limit: number = 20, filters?: StudyFilters) {
     const now = new Date();
 
-    // Build card filter for part/lesson
+    // Build card filter for part/lesson/folder
     const cardFilter: any = {};
     if (filters?.textbookPart) {
       cardFilter.textbookPart = filters.textbookPart;
     }
     if (filters?.lessonNumber) {
       cardFilter.lessonNumber = filters.lessonNumber;
+    }
+    if (filters?.folderId) {
+      cardFilter.folderCards = { some: { folderId: filters.folderId } };
     }
 
     const dueProgress = await prisma.cardProgress.findMany({
@@ -60,7 +64,7 @@ export const studyService = {
   },
 
   async getNewCards(userId: string, mode: QuizMode, limit: number = 10, filters?: StudyFilters) {
-    // Build filter for part/lesson
+    // Build filter for part/lesson/folder
     const cardFilter: any = {
       userId,
       cardProgress: {
@@ -75,6 +79,9 @@ export const studyService = {
     }
     if (filters?.lessonNumber) {
       cardFilter.lessonNumber = filters.lessonNumber;
+    }
+    if (filters?.folderId) {
+      cardFilter.folderCards = { some: { folderId: filters.folderId } };
     }
 
     // Find cards that don't have progress for this mode yet

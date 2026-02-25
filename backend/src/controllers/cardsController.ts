@@ -54,6 +54,7 @@ export const cardsController = {
       const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
       const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
       const search = req.query.search as string;
+      const folderId = req.query.folderId as string | undefined;
 
       const result = await cardService.listCards({
         userId,
@@ -64,6 +65,7 @@ export const cardsController = {
         textbookPart,
         lessonNumber,
         search,
+        folderId,
       });
 
       res.json(result);

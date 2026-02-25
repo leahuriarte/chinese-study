@@ -27,8 +27,10 @@ export default function Study() {
   const [writingMode, setWritingMode] = useState<WritingMode>('stroke_order');
   const [sessionType, setSessionType] = useState<SessionType>('srs');
   const [showModeSelector, setShowModeSelector] = useState(true);
+  const [studySource, setStudySource] = useState<'lesson' | 'folder'>('lesson');
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
@@ -43,24 +45,30 @@ export default function Study() {
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
 
   const filters = {
-    textbookPart: selectedPart || undefined,
-    lessonNumber: selectedLesson || undefined,
+    textbookPart: studySource === 'lesson' ? (selectedPart || undefined) : undefined,
+    lessonNumber: studySource === 'lesson' ? (selectedLesson || undefined) : undefined,
+    folderId: studySource === 'folder' ? (selectedFolderId || undefined) : undefined,
   };
 
+  const { data: foldersData } = useQuery({
+    queryKey: ['folders'],
+    queryFn: () => api.getFolders(),
+  });
+
   const { data: dueCardsData, isLoading: isLoadingDue } = useQuery({
-    queryKey: ['dueCards', mode, selectedPart, selectedLesson],
+    queryKey: ['dueCards', mode, studySource, selectedPart, selectedLesson, selectedFolderId],
     queryFn: () => api.getDueCards(mode, 20, filters),
     enabled: sessionType === 'srs',
   });
 
   const { data: newCards, isLoading: isLoadingNew } = useQuery({
-    queryKey: ['newCards', mode, selectedPart, selectedLesson],
+    queryKey: ['newCards', mode, studySource, selectedPart, selectedLesson, selectedFolderId],
     queryFn: () => api.getNewCards(mode, 5, filters),
     enabled: sessionType === 'srs',
   });
 
   const { data: allCardsData, isLoading: isLoadingAll } = useQuery({
-    queryKey: ['allCards', selectedPart, selectedLesson],
+    queryKey: ['allCards', studySource, selectedPart, selectedLesson, selectedFolderId],
     queryFn: () => api.getCards({ ...filters, limit: 500 }),
     enabled: sessionType !== 'srs',
   });
@@ -334,6 +342,8 @@ export default function Study() {
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
+    setStudySource('lesson');
+    setSelectedFolderId(null);
   };
 
   const getProgress = () => {
@@ -405,45 +415,79 @@ export default function Study() {
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Study Source */}
         <div className="document-card p-6 mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <span className="field-label">Filter by Textbook</span>
+            <span className="field-label">Study Source</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
-              <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}>
-                All Parts
-              </FilterButton>
-              <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}>
-                Part 1
-              </FilterButton>
-              <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLesson(null); }}>
-                Part 2
-              </FilterButton>
-            </div>
-
-            {selectedPart !== null && (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
-                <FilterButton active={selectedLesson === null} onClick={() => setSelectedLesson(null)}>
-                  All
-                </FilterButton>
-                {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
-                  <FilterButton
-                    key={lesson}
-                    active={selectedLesson === lesson}
-                    onClick={() => setSelectedLesson(lesson)}
-                  >
-                    {lesson}
-                  </FilterButton>
-                ))}
-              </div>
-            )}
+          <div className="flex gap-3 mb-6">
+            <FilterButton active={studySource === 'lesson'} onClick={() => { setStudySource('lesson'); setSelectedFolderId(null); }}>
+              By Lesson
+            </FilterButton>
+            <FilterButton active={studySource === 'folder'} onClick={() => { setStudySource('folder'); setSelectedPart(null); setSelectedLesson(null); }}>
+              By Folder
+            </FilterButton>
           </div>
+
+          {studySource === 'lesson' && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
+                <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}>
+                  All Parts
+                </FilterButton>
+                <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}>
+                  Part 1
+                </FilterButton>
+                <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLesson(null); }}>
+                  Part 2
+                </FilterButton>
+              </div>
+
+              {selectedPart !== null && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
+                  <FilterButton active={selectedLesson === null} onClick={() => setSelectedLesson(null)}>
+                    All
+                  </FilterButton>
+                  {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
+                    <FilterButton
+                      key={lesson}
+                      active={selectedLesson === lesson}
+                      onClick={() => setSelectedLesson(lesson)}
+                    >
+                      {lesson}
+                    </FilterButton>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {studySource === 'folder' && (
+            <div>
+              {!foldersData || foldersData.length === 0 ? (
+                <p className="text-sm text-ink-light">
+                  No folders yet.{' '}
+                  <a href="/folders" className="text-stamp-red hover:underline">Create one</a> to organize your cards.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {foldersData.map((folder) => (
+                    <FilterButton
+                      key={folder.id}
+                      active={selectedFolderId === folder.id}
+                      onClick={() => setSelectedFolderId(folder.id)}
+                    >
+                      {folder.name} ({folder.cardCount ?? 0})
+                    </FilterButton>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Writing Mode Selection */}
@@ -576,9 +620,14 @@ export default function Study() {
             <span className="text-xs px-2 py-1 border border-stamp-red text-stamp-red tracking-wider uppercase">
               {sessionLabel}
             </span>
-            {(selectedPart || selectedLesson) && (
+            {studySource === 'lesson' && (selectedPart || selectedLesson) && (
               <span className="text-xs text-ink-light">
                 Part {selectedPart}{selectedLesson ? `, L${selectedLesson}` : ''}
+              </span>
+            )}
+            {studySource === 'folder' && selectedFolderId && (
+              <span className="text-xs text-ink-light">
+                {foldersData?.find((f) => f.id === selectedFolderId)?.name || 'Folder'}
               </span>
             )}
           </div>

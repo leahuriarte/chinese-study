@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Cards from './pages/Cards';
 import Study from './pages/Study';
 import Stats from './pages/Stats';
+import Folders from './pages/Folders';
 import Header from './components/layout/Header';
 
 const queryClient = new QueryClient();
@@ -65,6 +66,14 @@ function AppRoutes() {
               element={
                 <PrivateRoute>
                   <Stats />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/folders"
+              element={
+                <PrivateRoute>
+                  <Folders />
                 </PrivateRoute>
               }
             />

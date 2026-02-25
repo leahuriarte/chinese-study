@@ -1,4 +1,4 @@
-import type { User, Card, CardProgress, QuizMode } from '../types';
+import type { User, Card, CardProgress, QuizMode, Folder } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -103,6 +103,7 @@ class ApiClient {
     textbookPart?: number;
     lessonNumber?: number;
     search?: string;
+    folderId?: string;
   }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.set('page', params.page.toString());
@@ -112,6 +113,7 @@ class ApiClient {
     if (params?.textbookPart) queryParams.set('textbookPart', params.textbookPart.toString());
     if (params?.lessonNumber) queryParams.set('lessonNumber', params.lessonNumber.toString());
     if (params?.search) queryParams.set('search', params.search);
+    if (params?.folderId) queryParams.set('folderId', params.folderId);
 
     return this.request<{
       cards: Card[];
@@ -153,24 +155,26 @@ class ApiClient {
   }
 
   // Study endpoints
-  async getDueCards(mode: QuizMode, limit: number = 20, filters?: { textbookPart?: number; lessonNumber?: number }) {
+  async getDueCards(mode: QuizMode, limit: number = 20, filters?: { textbookPart?: number; lessonNumber?: number; folderId?: string }) {
     const queryParams = new URLSearchParams();
     queryParams.set('mode', mode);
     queryParams.set('limit', limit.toString());
     if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
     if (filters?.lessonNumber) queryParams.set('lessonNumber', filters.lessonNumber.toString());
+    if (filters?.folderId) queryParams.set('folderId', filters.folderId);
 
     return this.request<Array<{ cardProgress: CardProgress; card: Card }>>(
       `/api/study/due?${queryParams}`
     );
   }
 
-  async getNewCards(mode: QuizMode, limit: number = 10, filters?: { textbookPart?: number; lessonNumber?: number }) {
+  async getNewCards(mode: QuizMode, limit: number = 10, filters?: { textbookPart?: number; lessonNumber?: number; folderId?: string }) {
     const queryParams = new URLSearchParams();
     queryParams.set('mode', mode);
     queryParams.set('limit', limit.toString());
     if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
     if (filters?.lessonNumber) queryParams.set('lessonNumber', filters.lessonNumber.toString());
+    if (filters?.folderId) queryParams.set('folderId', filters.folderId);
 
     return this.request<Card[]>(`/api/study/new?${queryParams}`);
   }
@@ -204,6 +208,48 @@ class ApiClient {
     return this.request<Record<string, { total: number; correct: number }>>(
       `/api/study/heatmap?days=${days}`
     );
+  }
+
+  // Folder endpoints
+  async getFolders() {
+    return this.request<Folder[]>('/api/folders');
+  }
+
+  async createFolder(name: string, description?: string) {
+    return this.request<Folder>('/api/folders', {
+      method: 'POST',
+      body: JSON.stringify({ name, description }),
+    });
+  }
+
+  async updateFolder(id: string, data: { name?: string; description?: string }) {
+    return this.request<Folder>(`/api/folders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFolder(id: string) {
+    return this.request<{ message: string }>(`/api/folders/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getFolderCards(folderId: string) {
+    return this.request<Card[]>(`/api/folders/${folderId}/cards`);
+  }
+
+  async addCardsToFolder(folderId: string, cardIds: string[]) {
+    return this.request<{ added: number }>(`/api/folders/${folderId}/cards`, {
+      method: 'POST',
+      body: JSON.stringify({ cardIds }),
+    });
+  }
+
+  async removeCardFromFolder(folderId: string, cardId: string) {
+    return this.request<{ message: string }>(`/api/folders/${folderId}/cards/${cardId}`, {
+      method: 'DELETE',
+    });
   }
 }
 

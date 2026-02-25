@@ -50,6 +50,10 @@ export default function Header() {
               Cards
             </NavLink>
             <span className="text-border mx-1">·</span>
+            <NavLink to="/folders" active={isActive('/folders')}>
+              Folders
+            </NavLink>
+            <span className="text-border mx-1">·</span>
             <NavLink to="/stats" active={isActive('/stats')}>
               Stats
             </NavLink>

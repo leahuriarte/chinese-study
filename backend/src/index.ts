@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import cardsRoutes from './routes/cards.js';
 import studyRoutes from './routes/study.js';
+import foldersRoutes from './routes/folders.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -45,6 +46,7 @@ app.post('/test-post', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cards', cardsRoutes);
 app.use('/api/study', studyRoutes);
+app.use('/api/folders', foldersRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

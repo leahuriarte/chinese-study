@@ -84,3 +84,13 @@ export interface SM2Result {
   repetitions: number;
   nextReviewDate: Date;
 }
+
+export interface Folder {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  cardCount?: number;
+}
