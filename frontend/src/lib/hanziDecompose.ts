@@ -1,40 +1,85 @@
 import radicalMeanings from '../data/radical_with_meanings.json';
 
-export interface RadicalInfo {
-  radical: string;
+export interface ComponentInfo {
+  character: string;
   meaning: string | null;
+  type: 'semantic' | 'phonetic' | 'unknown';
+  phoneticPinyin?: string;
+}
+
+export interface DecompositionResult {
+  character: string;
+  components: ComponentInfo[];
+}
+
+interface PhoneticEntry {
+  component: string;
+  pinyin: string;
+  regularity: number;
 }
 
 let decompositionMap: Record<string, string[]> | null = null;
+let phoneticMap: Record<string, PhoneticEntry> | null = null;
+let loadPromise: Promise<void> | null = null;
 
-async function getDecompositionMap(): Promise<Record<string, string[]>> {
-  if (!decompositionMap) {
-    const mod = await import('../data/cjk_decomp.json');
-    decompositionMap = mod.default as Record<string, string[]>;
+function ensureLoaded(): Promise<void> {
+  if (!loadPromise) {
+    loadPromise = Promise.all([
+      import('../data/cjk_decomp.json'),
+      import('../data/phonetic_components.json'),
+    ]).then(([decomp, phonetic]) => {
+      decompositionMap = decomp.default as Record<string, string[]>;
+      phoneticMap = phonetic.default as Record<string, PhoneticEntry>;
+    });
   }
-  return decompositionMap;
+  return loadPromise;
 }
 
-export async function decomposeHanzi(hanzi: string): Promise<RadicalInfo[]> {
-  const map = await getDecompositionMap();
+// Start loading immediately on module import
+ensureLoaded();
+
+export async function decomposeHanzi(hanziStr: string): Promise<DecompositionResult[]> {
+  await ensureLoaded();
+
   const meanings = radicalMeanings as Record<string, string>;
+  const results: DecompositionResult[] = [];
 
-  const result: RadicalInfo[] = [];
-  const seen = new Set<string>();
+  for (const char of hanziStr) {
+    const cp = char.codePointAt(0) ?? 0;
+    if (cp < 0x3400 || cp > 0x9fff) continue;
 
-  for (const char of hanzi) {
-    const components = map[char];
-    if (!components) continue;
+    const components1 = decompositionMap![char];
+    if (!components1 || components1.length === 0) continue;
 
-    for (const comp of components) {
-      if (!comp || seen.has(comp)) continue;
-      seen.add(comp);
-      result.push({
-        radical: comp,
-        meaning: meanings[comp] ?? null,
+    const phoneticEntry = phoneticMap![char] ?? null;
+
+    const components: ComponentInfo[] = components1
+      .filter((c) => c && c !== 'No glyph available')
+      .map((comp) => {
+        const meaning = meanings[comp] ?? null;
+        const isPhonetic = phoneticEntry?.component === comp;
+
+        let type: ComponentInfo['type'];
+        if (isPhonetic) {
+          type = 'phonetic';
+        } else if (meaning) {
+          type = 'semantic';
+        } else {
+          type = 'unknown';
+        }
+
+        return {
+          character: comp,
+          meaning,
+          type,
+          phoneticPinyin: isPhonetic ? phoneticEntry.pinyin : undefined,
+        };
       });
+
+    if (components.length > 0) {
+      results.push({ character: char, components });
     }
   }
 
-  return result;
+  return results;
 }
