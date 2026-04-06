@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card } from '../types';
+import RadicalBreakdown from '../components/RadicalBreakdown';
 
 export default function Cards() {
   const [isAddingCard, setIsAddingCard] = useState(false);
@@ -180,10 +181,13 @@ export default function Cards() {
                 </div>
 
                 {/* Hanzi */}
-                <div className="text-center py-4">
-                  <div className="text-5xl font-chinese text-stamp-red mb-3">{card.hanzi}</div>
-                  <div className="text-lg text-ink-light mb-1">{card.pinyinDisplay}</div>
-                  <div className="text-sm text-ink">{card.english}</div>
+                <div className="py-4">
+                  <div className="text-center">
+                    <div className="text-5xl font-chinese text-stamp-red mb-3">{card.hanzi}</div>
+                    <div className="text-lg text-ink-light mb-1">{card.pinyinDisplay}</div>
+                    <div className="text-sm text-ink">{card.english}</div>
+                  </div>
+                  <RadicalBreakdown hanzi={card.hanzi} />
                 </div>
 
                 {/* Tags */}

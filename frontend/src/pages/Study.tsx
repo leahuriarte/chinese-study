@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card, QuizMode } from '../types';
 import WritingQuiz from '../components/study/WritingQuiz';
+import RadicalBreakdown from '../components/RadicalBreakdown';
 
 const quizModes: { value: QuizMode; label: string; description: string; icon: string }[] = [
   { value: 'hanzi_to_pinyin', label: 'Hanzi → Pinyin', description: 'See character, type pinyin', icon: '拼' },
@@ -742,10 +743,13 @@ export default function Study() {
 
             {/* Card Details */}
             <div className="space-y-4 mb-8">
-              <div className="text-center py-6 bg-cream border border-border">
-                <div className="text-6xl font-kaiti text-stamp-red mb-3">{answeredCard.hanzi}</div>
-                <div className="text-xl text-ink-light mb-1">{answeredCard.pinyinDisplay}</div>
-                <div className="text-ink">{answeredCard.english}</div>
+              <div className="py-6 bg-cream border border-border px-6">
+                <div className="text-center">
+                  <div className="text-6xl font-kaiti text-stamp-red mb-3">{answeredCard.hanzi}</div>
+                  <div className="text-xl text-ink-light mb-1">{answeredCard.pinyinDisplay}</div>
+                  <div className="text-ink">{answeredCard.english}</div>
+                </div>
+                <RadicalBreakdown hanzi={answeredCard.hanzi} />
               </div>
 
               {!wasCorrect && answer && (
