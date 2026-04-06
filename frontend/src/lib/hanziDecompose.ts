@@ -48,6 +48,9 @@ export async function decomposeHanzi(hanziStr: string): Promise<DecompositionRes
     const cp = char.codePointAt(0) ?? 0;
     if (cp < 0x3400 || cp > 0x9fff) continue;
 
+    // If the character is itself a known radical/component, it's already atomic — don't decompose it
+    if (meanings[char]) continue;
+
     const components1 = decompositionMap![char];
     if (!components1 || components1.length === 0) continue;
 

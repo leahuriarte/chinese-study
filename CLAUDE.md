@@ -51,21 +51,31 @@ Cards can belong to many folders (`FolderCard` join table). Filter cards or stud
 ### Radical/phonetic breakdown
 `RadicalBreakdown` component (`frontend/src/components/RadicalBreakdown.tsx`) decomposes a hanzi string into its semantic (形旁) and phonetic (声旁) components. It is shown in the Study page result card and the Cards browser grid.
 
-The decomposition uses three static JSON data files in `frontend/src/data/` (no npm dependency — data was extracted once from the `hanzipy` Python library and the `hanzi` npm package):
-- `cjk_decomp.json` — 27k character → `string[]` components map (direct decomposition)
-- `radical_with_meanings.json` — radical character → English meaning
-- `phonetic_components.json` — 3,393 character → `{ component, pinyin, regularity }` phonetic entries
+The decomposition logic lives in `frontend/src/lib/hanziDecompose.ts` and uses three static JSON data files in `frontend/src/data/` (no npm dependency — data was extracted once from the `hanzipy` Python library and the `hanzi` npm package):
+- `cjk_decomp.json` — character → `string[]` direct components map. Pre-filtered: artifact components appearing fewer than 4 times across the whole dataset AND with no known meaning are removed at build time.
+- `radical_with_meanings.json` — ~783 entries: traditional Kangxi radicals + common phonetic/structural components (少, 各, 取, 合, 令, etc.) with English meanings.
+- `phonetic_components.json` — 3,393 character → `{ component, pinyin, regularity }` entries identifying phonetic (声旁) components.
 
-All three are lazy-loaded via dynamic `import()` in `frontend/src/lib/hanziDecompose.ts`, splitting them into separate chunks (`cjk_decomp` ~158KB gzip, `phonetic_components` ~20KB gzip). Loading kicks off immediately on module import so data is ready by the time a user reaches a card.
+**Key decomposition rule**: if a character is itself in `radical_with_meanings.json` (i.e. it's already a known radical/atomic unit — 大, 生, 二, 走, etc.), it is skipped entirely and not decomposed further. This prevents unhelpful breakdowns like 二→一 or 生→stroke primitives. The breakdown section is hidden when there is nothing to show.
 
-To regenerate the data files (only needed if updating the source data):
+Component tiles are styled by type: cream border = semantic (形旁), blue border = phonetic (声旁, shows the associated pinyin).
+
+All three data files are lazy-loaded via dynamic `import()`, splitting them into separate chunks (`cjk_decomp` ~147KB gzip, `phonetic_components` ~20KB gzip). Loading kicks off immediately on module import.
+
+To regenerate the data files (only needed if updating source data):
 ```bash
-# cjk_decomp.json + radical_with_meanings.json: re-download from hanzipy repo
-curl https://raw.githubusercontent.com/Synkied/hanzipy/master/hanzipy/data/radical_with_meanings.json > frontend/src/data/radical_with_meanings.json
-# Then run the conversion script (see /tmp/convert_cjk_decomp.mjs for reference)
+# 1. Re-download radical_with_meanings.json base from hanzipy, then manually re-apply extensions
+curl https://raw.githubusercontent.com/Synkied/hanzipy/master/hanzipy/data/radical_with_meanings.json > /tmp/base_meanings.json
+# See /tmp/build_extended_meanings.mjs for the curation script
 
-# phonetic_components.json: requires hanzi npm package temporarily installed
-cd frontend && npm install hanzi && node -e "/* see hanziDecompose.ts comments */" && npm uninstall hanzi
+# 2. Re-convert cjk_decomp.txt from hanzipy, apply frequency filter (threshold=4)
+curl https://raw.githubusercontent.com/Synkied/hanzipy/master/hanzipy/data/cjk_decomp.txt > /tmp/cjk_decomp.txt
+# See /tmp/convert_cjk_decomp.mjs for the conversion script
+
+# 3. Rebuild phonetic_components.json (requires hanzi npm package temporarily)
+cd frontend && npm install hanzi
+# Extract phonetic_sets_regularity_one/two from hanzi/lib/data/ and build reverse lookup
+npm uninstall hanzi
 ```
 
 ## Key patterns
