@@ -48,6 +48,26 @@ Cards can belong to many folders (`FolderCard` join table). Filter cards or stud
 - `AuthContext` (`frontend/src/contexts/AuthContext.tsx`) manages auth state
 - `api` client singleton handles token management
 
+### Radical/phonetic breakdown
+`RadicalBreakdown` component (`frontend/src/components/RadicalBreakdown.tsx`) decomposes a hanzi string into its semantic (形旁) and phonetic (声旁) components. It is shown in the Study page result card and the Cards browser grid.
+
+The decomposition uses three static JSON data files in `frontend/src/data/` (no npm dependency — data was extracted once from the `hanzipy` Python library and the `hanzi` npm package):
+- `cjk_decomp.json` — 27k character → `string[]` components map (direct decomposition)
+- `radical_with_meanings.json` — radical character → English meaning
+- `phonetic_components.json` — 3,393 character → `{ component, pinyin, regularity }` phonetic entries
+
+All three are lazy-loaded via dynamic `import()` in `frontend/src/lib/hanziDecompose.ts`, splitting them into separate chunks (`cjk_decomp` ~158KB gzip, `phonetic_components` ~20KB gzip). Loading kicks off immediately on module import so data is ready by the time a user reaches a card.
+
+To regenerate the data files (only needed if updating the source data):
+```bash
+# cjk_decomp.json + radical_with_meanings.json: re-download from hanzipy repo
+curl https://raw.githubusercontent.com/Synkied/hanzipy/master/hanzipy/data/radical_with_meanings.json > frontend/src/data/radical_with_meanings.json
+# Then run the conversion script (see /tmp/convert_cjk_decomp.mjs for reference)
+
+# phonetic_components.json: requires hanzi npm package temporarily installed
+cd frontend && npm install hanzi && node -e "/* see hanziDecompose.ts comments */" && npm uninstall hanzi
+```
+
 ## Key patterns
 
 - `req.params.id as string` — needed due to Express 5 type issue where params can be `string | string[]`

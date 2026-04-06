@@ -54,7 +54,7 @@ export async function decomposeHanzi(hanziStr: string): Promise<DecompositionRes
     const phoneticEntry = phoneticMap![char] ?? null;
 
     const components: ComponentInfo[] = components1
-      .filter((c) => c && c !== 'No glyph available')
+      .filter((c) => !!c)
       .map((comp) => {
         const meaning = meanings[comp] ?? null;
         const isPhonetic = phoneticEntry?.component === comp;
