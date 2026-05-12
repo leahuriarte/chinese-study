@@ -25,7 +25,8 @@ export const studyController = {
       const mode = req.query.mode as any;
       const limit = parseInt(req.query.limit as string) || 20;
       const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
-      const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
+      const lessonNumbersRaw = req.query.lessonNumbers as string | undefined;
+      const lessonNumbers = lessonNumbersRaw ? lessonNumbersRaw.split(',').map(Number).filter(n => !isNaN(n)) : undefined;
       const folderId = req.query.folderId as string | undefined;
 
       if (!mode) {
@@ -33,7 +34,7 @@ export const studyController = {
         return;
       }
 
-      const filters = { textbookPart, lessonNumber, folderId };
+      const filters = { textbookPart, lessonNumbers, folderId };
       const cards = await studyService.getDueCards(userId, mode, limit, filters);
       res.json(cards);
     } catch (error) {
@@ -51,7 +52,8 @@ export const studyController = {
       const mode = req.query.mode as any;
       const limit = parseInt(req.query.limit as string) || 10;
       const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
-      const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
+      const lessonNumbersRaw = req.query.lessonNumbers as string | undefined;
+      const lessonNumbers = lessonNumbersRaw ? lessonNumbersRaw.split(',').map(Number).filter(n => !isNaN(n)) : undefined;
       const folderId = req.query.folderId as string | undefined;
 
       if (!mode) {
@@ -59,7 +61,7 @@ export const studyController = {
         return;
       }
 
-      const filters = { textbookPart, lessonNumber, folderId };
+      const filters = { textbookPart, lessonNumbers, folderId };
       const cards = await studyService.getNewCards(userId, mode, limit, filters);
       res.json(cards);
     } catch (error) {

@@ -8,6 +8,7 @@ import Cards from './pages/Cards';
 import Study from './pages/Study';
 import Stats from './pages/Stats';
 import Folders from './pages/Folders';
+import Matching from './pages/Matching';
 import Header from './components/layout/Header';
 
 const queryClient = new QueryClient();
@@ -74,6 +75,14 @@ function AppRoutes() {
               element={
                 <PrivateRoute>
                   <Folders />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/matching"
+              element={
+                <PrivateRoute>
+                  <Matching />
                 </PrivateRoute>
               }
             />

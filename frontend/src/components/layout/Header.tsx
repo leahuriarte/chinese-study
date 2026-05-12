@@ -46,6 +46,10 @@ export default function Header() {
               Study
             </NavLink>
             <span className="text-border mx-1">·</span>
+            <NavLink to="/matching" active={isActive('/matching')}>
+              Matching
+            </NavLink>
+            <span className="text-border mx-1">·</span>
             <NavLink to="/cards" active={isActive('/cards')}>
               Cards
             </NavLink>

@@ -30,7 +30,7 @@ export default function Study() {
   const [showModeSelector, setShowModeSelector] = useState(true);
   const [studySource, setStudySource] = useState<'lesson' | 'folder'>('lesson');
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
-  const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
+  const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState(false);
@@ -47,7 +47,7 @@ export default function Study() {
 
   const filters = {
     textbookPart: studySource === 'lesson' ? (selectedPart || undefined) : undefined,
-    lessonNumber: studySource === 'lesson' ? (selectedLesson || undefined) : undefined,
+    lessonNumbers: studySource === 'lesson' && selectedLessons.length > 0 ? selectedLessons : undefined,
     folderId: studySource === 'folder' ? (selectedFolderId || undefined) : undefined,
   };
 
@@ -57,19 +57,19 @@ export default function Study() {
   });
 
   const { data: dueCardsData, isLoading: isLoadingDue } = useQuery({
-    queryKey: ['dueCards', mode, studySource, selectedPart, selectedLesson, selectedFolderId],
+    queryKey: ['dueCards', mode, studySource, selectedPart, selectedLessons, selectedFolderId],
     queryFn: () => api.getDueCards(mode, 20, filters),
     enabled: sessionType === 'srs',
   });
 
   const { data: newCards, isLoading: isLoadingNew } = useQuery({
-    queryKey: ['newCards', mode, studySource, selectedPart, selectedLesson, selectedFolderId],
+    queryKey: ['newCards', mode, studySource, selectedPart, selectedLessons, selectedFolderId],
     queryFn: () => api.getNewCards(mode, 5, filters),
     enabled: sessionType === 'srs',
   });
 
   const { data: allCardsData, isLoading: isLoadingAll } = useQuery({
-    queryKey: ['allCards', studySource, selectedPart, selectedLesson, selectedFolderId],
+    queryKey: ['allCards', studySource, selectedPart, selectedLessons, selectedFolderId],
     queryFn: () => api.getCards({ ...filters, limit: 500 }),
     enabled: sessionType !== 'srs',
   });
@@ -427,7 +427,7 @@ export default function Study() {
             <FilterButton active={studySource === 'lesson'} onClick={() => { setStudySource('lesson'); setSelectedFolderId(null); }}>
               By Lesson
             </FilterButton>
-            <FilterButton active={studySource === 'folder'} onClick={() => { setStudySource('folder'); setSelectedPart(null); setSelectedLesson(null); }}>
+            <FilterButton active={studySource === 'folder'} onClick={() => { setStudySource('folder'); setSelectedPart(null); setSelectedLessons([]); }}>
               By Folder
             </FilterButton>
           </div>
@@ -436,13 +436,13 @@ export default function Study() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
-                <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}>
+                <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLessons([]); }}>
                   All Parts
                 </FilterButton>
-                <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}>
+                <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLessons([]); }}>
                   Part 1
                 </FilterButton>
-                <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLesson(null); }}>
+                <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLessons([]); }}>
                   Part 2
                 </FilterButton>
               </div>
@@ -450,14 +450,16 @@ export default function Study() {
               {selectedPart !== null && (
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
-                  <FilterButton active={selectedLesson === null} onClick={() => setSelectedLesson(null)}>
+                  <FilterButton active={selectedLessons.length === 0} onClick={() => setSelectedLessons([])}>
                     All
                   </FilterButton>
                   {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
                     <FilterButton
                       key={lesson}
-                      active={selectedLesson === lesson}
-                      onClick={() => setSelectedLesson(lesson)}
+                      active={selectedLessons.includes(lesson)}
+                      onClick={() => setSelectedLessons(prev =>
+                        prev.includes(lesson) ? prev.filter(l => l !== lesson) : [...prev, lesson]
+                      )}
                     >
                       {lesson}
                     </FilterButton>
@@ -621,9 +623,9 @@ export default function Study() {
             <span className="text-xs px-2 py-1 border border-stamp-red text-stamp-red tracking-wider uppercase">
               {sessionLabel}
             </span>
-            {studySource === 'lesson' && (selectedPart || selectedLesson) && (
+            {studySource === 'lesson' && (selectedPart || selectedLessons.length > 0) && (
               <span className="text-xs text-ink-light">
-                Part {selectedPart}{selectedLesson ? `, L${selectedLesson}` : ''}
+                Part {selectedPart}{selectedLessons.length > 0 ? `, L${selectedLessons.sort((a, b) => a - b).join(', ')}` : ''}
               </span>
             )}
             {studySource === 'folder' && selectedFolderId && (

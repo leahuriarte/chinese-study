@@ -101,7 +101,7 @@ class ApiClient {
     tags?: string[];
     hskLevel?: number;
     textbookPart?: number;
-    lessonNumber?: number;
+    lessonNumbers?: number[];
     search?: string;
     folderId?: string;
   }) {
@@ -111,7 +111,7 @@ class ApiClient {
     if (params?.tags) queryParams.set('tags', params.tags.join(','));
     if (params?.hskLevel) queryParams.set('hskLevel', params.hskLevel.toString());
     if (params?.textbookPart) queryParams.set('textbookPart', params.textbookPart.toString());
-    if (params?.lessonNumber) queryParams.set('lessonNumber', params.lessonNumber.toString());
+    if (params?.lessonNumbers && params.lessonNumbers.length > 0) queryParams.set('lessonNumbers', params.lessonNumbers.join(','));
     if (params?.search) queryParams.set('search', params.search);
     if (params?.folderId) queryParams.set('folderId', params.folderId);
 
@@ -155,12 +155,12 @@ class ApiClient {
   }
 
   // Study endpoints
-  async getDueCards(mode: QuizMode, limit: number = 20, filters?: { textbookPart?: number; lessonNumber?: number; folderId?: string }) {
+  async getDueCards(mode: QuizMode, limit: number = 20, filters?: { textbookPart?: number; lessonNumbers?: number[]; folderId?: string }) {
     const queryParams = new URLSearchParams();
     queryParams.set('mode', mode);
     queryParams.set('limit', limit.toString());
     if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
-    if (filters?.lessonNumber) queryParams.set('lessonNumber', filters.lessonNumber.toString());
+    if (filters?.lessonNumbers && filters.lessonNumbers.length > 0) queryParams.set('lessonNumbers', filters.lessonNumbers.join(','));
     if (filters?.folderId) queryParams.set('folderId', filters.folderId);
 
     return this.request<Array<{ cardProgress: CardProgress; card: Card }>>(
@@ -168,12 +168,12 @@ class ApiClient {
     );
   }
 
-  async getNewCards(mode: QuizMode, limit: number = 10, filters?: { textbookPart?: number; lessonNumber?: number; folderId?: string }) {
+  async getNewCards(mode: QuizMode, limit: number = 10, filters?: { textbookPart?: number; lessonNumbers?: number[]; folderId?: string }) {
     const queryParams = new URLSearchParams();
     queryParams.set('mode', mode);
     queryParams.set('limit', limit.toString());
     if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
-    if (filters?.lessonNumber) queryParams.set('lessonNumber', filters.lessonNumber.toString());
+    if (filters?.lessonNumbers && filters.lessonNumbers.length > 0) queryParams.set('lessonNumbers', filters.lessonNumbers.join(','));
     if (filters?.folderId) queryParams.set('folderId', filters.folderId);
 
     return this.request<Card[]>(`/api/study/new?${queryParams}`);

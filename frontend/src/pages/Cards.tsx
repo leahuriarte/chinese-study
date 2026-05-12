@@ -17,7 +17,7 @@ export default function Cards() {
     queryFn: () => api.getCards({
       search: searchTerm,
       textbookPart: selectedPart || undefined,
-      lessonNumber: selectedLesson || undefined,
+      lessonNumbers: selectedLesson ? [selectedLesson] : undefined,
       limit: 500,
     }),
   });

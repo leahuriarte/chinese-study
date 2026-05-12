@@ -52,7 +52,8 @@ export const cardsController = {
       const tags = req.query.tags ? (req.query.tags as string).split(',') : undefined;
       const hskLevel = req.query.hskLevel ? parseInt(req.query.hskLevel as string) : undefined;
       const textbookPart = req.query.textbookPart ? parseInt(req.query.textbookPart as string) : undefined;
-      const lessonNumber = req.query.lessonNumber ? parseInt(req.query.lessonNumber as string) : undefined;
+      const lessonNumbersRaw = req.query.lessonNumbers as string | undefined;
+      const lessonNumbers = lessonNumbersRaw ? lessonNumbersRaw.split(',').map(Number).filter(n => !isNaN(n)) : undefined;
       const search = req.query.search as string;
       const folderId = req.query.folderId as string | undefined;
 
@@ -63,7 +64,7 @@ export const cardsController = {
         tags,
         hskLevel,
         textbookPart,
-        lessonNumber,
+        lessonNumbers,
         search,
         folderId,
       });

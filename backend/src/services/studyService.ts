@@ -19,7 +19,7 @@ export interface ReviewSubmission {
 
 export interface StudyFilters {
   textbookPart?: number;
-  lessonNumber?: number;
+  lessonNumbers?: number[];
   folderId?: string;
 }
 
@@ -32,8 +32,8 @@ export const studyService = {
     if (filters?.textbookPart) {
       cardFilter.textbookPart = filters.textbookPart;
     }
-    if (filters?.lessonNumber) {
-      cardFilter.lessonNumber = filters.lessonNumber;
+    if (filters?.lessonNumbers && filters.lessonNumbers.length > 0) {
+      cardFilter.lessonNumber = { in: filters.lessonNumbers };
     }
     if (filters?.folderId) {
       cardFilter.folderCards = { some: { folderId: filters.folderId } };
@@ -77,8 +77,8 @@ export const studyService = {
     if (filters?.textbookPart) {
       cardFilter.textbookPart = filters.textbookPart;
     }
-    if (filters?.lessonNumber) {
-      cardFilter.lessonNumber = filters.lessonNumber;
+    if (filters?.lessonNumbers && filters.lessonNumbers.length > 0) {
+      cardFilter.lessonNumber = { in: filters.lessonNumbers };
     }
     if (filters?.folderId) {
       cardFilter.folderCards = { some: { folderId: filters.folderId } };
