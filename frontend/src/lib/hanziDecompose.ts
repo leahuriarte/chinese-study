@@ -12,14 +12,26 @@ export interface DecompositionResult {
   components: ComponentInfo[];
 }
 
+export interface CharDefinition {
+  character: string;
+  definition: string;
+  pinyin: string;
+}
+
 interface PhoneticEntry {
   component: string;
   pinyin: string;
   regularity: number;
 }
 
+interface CharDefEntry {
+  d: string;
+  p: string;
+}
+
 let decompositionMap: Record<string, string[]> | null = null;
 let phoneticMap: Record<string, PhoneticEntry> | null = null;
+let charDefMap: Record<string, CharDefEntry> | null = null;
 let loadPromise: Promise<void> | null = null;
 
 function ensureLoaded(): Promise<void> {
@@ -27,9 +39,11 @@ function ensureLoaded(): Promise<void> {
     loadPromise = Promise.all([
       import('../data/cjk_decomp.json'),
       import('../data/phonetic_components.json'),
-    ]).then(([decomp, phonetic]) => {
+      import('../data/char_definitions.json'),
+    ]).then(([decomp, phonetic, charDefs]) => {
       decompositionMap = decomp.default as Record<string, string[]>;
       phoneticMap = phonetic.default as Record<string, PhoneticEntry>;
+      charDefMap = charDefs.default as Record<string, CharDefEntry>;
     });
   }
   return loadPromise;
@@ -37,6 +51,20 @@ function ensureLoaded(): Promise<void> {
 
 // Start loading immediately on module import
 ensureLoaded();
+
+export async function getCharDefinitions(hanziStr: string): Promise<CharDefinition[]> {
+  await ensureLoaded();
+  const results: CharDefinition[] = [];
+  for (const char of hanziStr) {
+    const cp = char.codePointAt(0) ?? 0;
+    if (cp < 0x4E00 || cp > 0x9FFF) continue;
+    const entry = charDefMap![char];
+    if (entry) {
+      results.push({ character: char, definition: entry.d, pinyin: entry.p });
+    }
+  }
+  return results;
+}
 
 export async function decomposeHanzi(hanziStr: string): Promise<DecompositionResult[]> {
   await ensureLoaded();

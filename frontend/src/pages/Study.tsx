@@ -44,6 +44,10 @@ export default function Study() {
   const [cardQueue, setCardQueue] = useState<CardWithProgress[]>([]);
   const [masteredCards, setMasteredCards] = useState<Set<string>>(new Set());
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
+  const [sessionActive, setSessionActive] = useState(false);
+  const [wrongCardIds, setWrongCardIds] = useState<Set<string>>(new Set());
+  const [folderPromptName, setFolderPromptName] = useState('');
+  const [folderPromptState, setFolderPromptState] = useState<'idle' | 'asking' | 'naming' | 'done'>('idle');
 
   const filters = {
     textbookPart: studySource === 'lesson' ? (selectedPart || undefined) : undefined,
@@ -90,6 +94,18 @@ export default function Study() {
     },
   });
 
+  const createMissedFolderMutation = useMutation({
+    mutationFn: async ({ name, cardIds }: { name: string; cardIds: string[] }) => {
+      const folder = await api.createFolder(name);
+      await api.addCardsToFolder(folder.id, cardIds);
+      return folder;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      setFolderPromptState('done');
+    },
+  });
+
   const srsCards: Card[] = sessionType === 'srs' ? [
     ...(dueCardsData?.map((d) => d.card) || []),
     ...(newCards || []),
@@ -110,13 +126,21 @@ export default function Study() {
   const currentCard = getCurrentCard();
 
   useEffect(() => {
-    if (sessionType !== 'srs' && allCardsData?.cards && cardQueue.length === 0 && !showModeSelector) {
+    if (
+      sessionType !== 'srs' &&
+      allCardsData?.cards &&
+      allCardsData.cards.length > 0 &&
+      cardQueue.length === 0 &&
+      sessionActive &&
+      masteredCards.size === 0 &&
+      completedCards.size === 0
+    ) {
       const shuffled = [...allCardsData.cards]
         .sort(() => Math.random() - 0.5)
         .map(card => ({ ...card, correctCount: 0, totalAttempts: 0 }));
       setCardQueue(shuffled);
     }
-  }, [sessionType, allCardsData, cardQueue.length, showModeSelector]);
+  }, [sessionType, allCardsData, cardQueue.length, sessionActive, masteredCards.size, completedCards.size]);
 
   useEffect(() => {
     setStartTime(Date.now());
@@ -222,6 +246,10 @@ export default function Study() {
     setAnsweredCard(currentCard);
     setWasCorrect(correct);
     setShowResult(true);
+
+    if (!correct) {
+      setWrongCardIds(prev => new Set([...prev, currentCard.id]));
+    }
 
     if (sessionType === 'srs') {
       const quality = correct ? 4 : 2;
@@ -331,6 +359,10 @@ export default function Study() {
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
+    setSessionActive(true);
+    setWrongCardIds(new Set());
+    setFolderPromptState('idle');
+    setFolderPromptName('');
   };
 
   const changeMode = () => {
@@ -343,6 +375,10 @@ export default function Study() {
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
+    setSessionActive(false);
+    setWrongCardIds(new Set());
+    setFolderPromptState('idle');
+    setFolderPromptName('');
     setStudySource('lesson');
     setSelectedFolderId(null);
   };
@@ -569,9 +605,20 @@ export default function Study() {
   // Session Complete State
   if (isSessionComplete() || (!currentCard && !isLoading)) {
     const sessionLabel = sessionType === 'srs' ? 'Spaced Repetition' : sessionType === 'mastery' ? 'Mastery' : 'Quick Review';
+
+    const buildDefaultFolderName = () => {
+      const typeLabel = sessionType === 'mastery' ? 'Mastery' : sessionType === 'quick' ? 'Quick' : 'SRS';
+      const sourceLabel = studySource === 'folder'
+        ? foldersData?.find(f => f.id === selectedFolderId)?.name || 'Folder'
+        : selectedLessons.length > 0
+        ? `L${[...selectedLessons].sort((a, b) => a - b).join(', ')}`
+        : selectedPart ? `Part ${selectedPart}` : 'All';
+      return `Missed: ${sourceLabel} (${typeLabel})`;
+    };
+
     return (
       <div className="max-w-2xl mx-auto px-4 pt-12">
-        <div className="document-card p-12 text-center">
+        <div className="document-card p-10 text-center">
           <div className="seal-stamp mx-auto mb-8 animate-stamp-press bg-green-50 border-green-600 text-green-600">
             <span className="font-chinese">成</span>
           </div>
@@ -586,6 +633,90 @@ export default function Study() {
           <p className="text-xs text-ink-light tracking-wider uppercase mb-8">
             Session: {sessionLabel}
           </p>
+
+          {/* Missed-cards folder prompt */}
+          {wrongCardIds.size > 0 && folderPromptState !== 'done' && (
+            <div className="border border-dashed border-border p-6 mb-8 text-left">
+              {folderPromptState === 'idle' && (
+                <>
+                  <p className="text-sm text-ink mb-4">
+                    You missed <span className="font-bold text-stamp-red">{wrongCardIds.size}</span> card{wrongCardIds.size === 1 ? '' : 's'}.
+                    Save them to a folder for focused review?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setFolderPromptName(buildDefaultFolderName());
+                        setFolderPromptState('naming');
+                      }}
+                      className="vintage-btn vintage-btn-primary text-xs px-5 py-2"
+                    >
+                      Yes, save to folder
+                    </button>
+                    <button
+                      onClick={() => setFolderPromptState('done')}
+                      className="vintage-btn text-xs px-5 py-2 border-ink-light text-ink-light hover:border-ink hover:text-ink"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {folderPromptState === 'naming' && (
+                <>
+                  <p className="text-xs tracking-wider uppercase text-ink-light mb-3">Folder name</p>
+                  <input
+                    type="text"
+                    value={folderPromptName}
+                    onChange={e => setFolderPromptName(e.target.value)}
+                    className="w-full border border-border bg-paper px-3 py-2 text-sm text-ink mb-4 focus:outline-none focus:border-stamp-red"
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && folderPromptName.trim()) {
+                        createMissedFolderMutation.mutate({
+                          name: folderPromptName.trim(),
+                          cardIds: [...wrongCardIds],
+                        });
+                      }
+                    }}
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        if (folderPromptName.trim()) {
+                          createMissedFolderMutation.mutate({
+                            name: folderPromptName.trim(),
+                            cardIds: [...wrongCardIds],
+                          });
+                        }
+                      }}
+                      disabled={!folderPromptName.trim() || createMissedFolderMutation.isPending}
+                      className="vintage-btn vintage-btn-primary text-xs px-5 py-2 disabled:opacity-50"
+                    >
+                      {createMissedFolderMutation.isPending ? 'Saving...' : 'Create Folder'}
+                    </button>
+                    <button
+                      onClick={() => setFolderPromptState('idle')}
+                      className="vintage-btn text-xs px-5 py-2 border-ink-light text-ink-light hover:border-ink hover:text-ink"
+                    >
+                      Back
+                    </button>
+                  </div>
+                  {createMissedFolderMutation.isError && (
+                    <p className="text-xs text-stamp-red mt-2">Failed to create folder. Try again.</p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {folderPromptState === 'done' && wrongCardIds.size > 0 && (
+            <div className="border border-green-300 bg-green-50 px-4 py-3 mb-8 text-sm text-green-700">
+              Folder created with {wrongCardIds.size} card{wrongCardIds.size === 1 ? '' : 's'}.
+            </div>
+          )}
+
           <button
             onClick={changeMode}
             className="vintage-btn vintage-btn-primary"
