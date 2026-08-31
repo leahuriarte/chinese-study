@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import HanziWriter from 'hanzi-writer';
+import { getStroke } from 'perfect-freehand';
 import { useAuth } from '../../contexts/AuthContext';
 import { getWritingSettingsFromSettings } from '../../lib/theme';
 import type { Card } from '../../types';
 import type { WritingMode } from '../../pages/Study';
+import type { StrokeOptions } from 'perfect-freehand';
 
 interface WritingQuizProps {
   card: Card;
@@ -18,78 +20,147 @@ function getThemeColor(property: string, fallback: string) {
   return value || fallback;
 }
 
-type DrawingPoint = {
-  x: number;
-  y: number;
-  pressure: number;
+type DrawingPoint = [x: number, y: number, pressure: number];
+
+type CanvasStroke = {
+  kind: 'smooth' | 'brush' | 'eraser';
+  points: DrawingPoint[];
+  size: number;
+  color: string;
 };
 
-function getPointerPressure(e: React.PointerEvent<HTMLCanvasElement>) {
+function getCanvasContext(canvas: HTMLCanvasElement) {
+  return canvas.getContext('2d', { alpha: false });
+}
+
+function getPointerPressure(e: PointerEvent) {
   return e.pressure > 0 ? e.pressure : 0.45;
 }
 
-function interpolate(from: number, to: number, amount: number) {
-  return from + (to - from) * amount;
+function getCanvasPoint(e: PointerEvent, rect: DOMRect): DrawingPoint {
+  return [e.clientX - rect.left, e.clientY - rect.top, getPointerPressure(e)];
+}
+
+function getCoalescedPointerEvents(e: React.PointerEvent<HTMLCanvasElement>) {
+  return typeof e.nativeEvent.getCoalescedEvents === 'function'
+    ? e.nativeEvent.getCoalescedEvents()
+    : [e.nativeEvent];
+}
+
+function paintCanvasBackground(ctx: CanvasRenderingContext2D) {
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = getThemeColor('--color-paper', '#f8fbff');
+  ctx.fillRect(0, 0, 300, 300);
+
+  ctx.strokeStyle = getThemeColor('--color-border', '#afd0f8');
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(150, 0);
+  ctx.lineTo(150, 300);
+  ctx.moveTo(0, 150);
+  ctx.lineTo(300, 150);
+  ctx.stroke();
 }
 
 function drawBrushDab(ctx: CanvasRenderingContext2D, point: DrawingPoint, penSize: number) {
-  const width = penSize * (1.1 + point.pressure * 1.4);
+  const width = Math.max(2, penSize * (0.85 + point[2] * 1.35));
 
-  ctx.save();
   ctx.globalAlpha = 0.86;
   ctx.beginPath();
-  ctx.ellipse(point.x, point.y, width * 0.5, width * 0.26, -Math.PI / 9, 0, Math.PI * 2);
+  ctx.ellipse(point[0], point[1], width * 0.5, width * 0.26, -Math.PI / 9, 0, Math.PI * 2);
   ctx.fill();
-  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
-function drawBrushStroke(
-  ctx: CanvasRenderingContext2D,
-  from: DrawingPoint,
-  to: DrawingPoint,
-  penSize: number
-) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.hypot(dx, dy);
-  const steps = Math.max(1, Math.ceil(distance / 2));
-  const speedTaper = Math.min(distance / 34, 1) * 0.18;
+function drawSmoothStroke(ctx: CanvasRenderingContext2D, stroke: CanvasStroke) {
+  const [firstPoint, ...restPoints] = stroke.points;
+  if (!firstPoint) return;
 
-  ctx.save();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  ctx.lineWidth = stroke.kind === 'eraser' ? stroke.size * 2 : stroke.size;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  for (let step = 1; step <= steps; step += 1) {
-    const previousAmount = (step - 1) / steps;
-    const amount = step / steps;
-    const pressure = interpolate(from.pressure, to.pressure, amount);
-    const width = Math.max(2, penSize * (0.85 + pressure * 1.45) * (1 - speedTaper));
-    const startX = interpolate(from.x, to.x, previousAmount);
-    const startY = interpolate(from.y, to.y, previousAmount);
-    const endX = interpolate(from.x, to.x, amount);
-    const endY = interpolate(from.y, to.y, amount);
-
-    ctx.globalAlpha = 0.7 + pressure * 0.2;
-    ctx.lineWidth = width;
+  if (restPoints.length === 0) {
     ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
-    ctx.stroke();
-
-    if (step % 3 === 0) {
-      const angle = Math.atan2(dy, dx) - Math.PI / 2;
-      const offset = width * 0.18;
-
-      ctx.globalAlpha = 0.16;
-      ctx.lineWidth = Math.max(1, width * 0.2);
-      ctx.beginPath();
-      ctx.moveTo(startX + Math.cos(angle) * offset, startY + Math.sin(angle) * offset);
-      ctx.lineTo(endX + Math.cos(angle) * offset, endY + Math.sin(angle) * offset);
-      ctx.stroke();
-    }
+    ctx.arc(firstPoint[0], firstPoint[1], ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+    return;
   }
 
-  ctx.restore();
+  let lastPoint = firstPoint;
+  ctx.beginPath();
+  ctx.moveTo(firstPoint[0], firstPoint[1]);
+
+  restPoints.forEach((point) => {
+    const midX = (lastPoint[0] + point[0]) / 2;
+    const midY = (lastPoint[1] + point[1]) / 2;
+
+    ctx.quadraticCurveTo(lastPoint[0], lastPoint[1], midX, midY);
+    lastPoint = point;
+  });
+
+  ctx.lineTo(lastPoint[0], lastPoint[1]);
+  ctx.stroke();
+}
+
+function drawFreehandStroke(
+  ctx: CanvasRenderingContext2D,
+  points: DrawingPoint[],
+  penSize: number,
+  isComplete: boolean
+) {
+  if (points.length === 0) return;
+
+  if (points.length < 2) {
+    drawBrushDab(ctx, points[0], penSize);
+    return;
+  }
+
+  const options: StrokeOptions = {
+    size: penSize * 2.15,
+    thinning: 0.68,
+    smoothing: 0.62,
+    streamline: 0.42,
+    simulatePressure: false,
+    last: isComplete,
+    start: {
+      cap: true,
+    },
+    end: {
+      cap: true,
+    },
+  };
+  const outline = getStroke(points, options);
+
+  if (outline.length < 2) return;
+
+  ctx.globalAlpha = 0.88;
+  ctx.beginPath();
+  ctx.moveTo(outline[0][0], outline[0][1]);
+  for (let index = 1; index < outline.length; index += 1) {
+    ctx.lineTo(outline[index][0], outline[index][1]);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function drawCanvasStroke(
+  ctx: CanvasRenderingContext2D,
+  stroke: CanvasStroke,
+  isComplete: boolean
+) {
+  if (stroke.kind === 'brush') {
+    ctx.fillStyle = stroke.color;
+    drawFreehandStroke(ctx, stroke.points, stroke.size, isComplete);
+    return;
+  }
+
+  drawSmoothStroke(ctx, stroke);
 }
 
 export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onComplete }: WritingQuizProps) {
@@ -105,7 +176,6 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
   const [showHint, setShowHint] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
   const [themeRevision, setThemeRevision] = useState(0);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [penSize, setPenSizeState] = useState(() => {
     const saved = localStorage.getItem('freehand-pen-size');
@@ -124,7 +194,11 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     setStylusOnlyState(enabled);
     localStorage.setItem('freehand-stylus-only', enabled.toString());
   };
-  const lastPointRef = useRef<DrawingPoint | null>(null);
+  const isDrawingRef = useRef(false);
+  const frameRef = useRef<number | null>(null);
+  const pendingPointsRef = useRef<DrawingPoint[]>([]);
+  const completedStrokesRef = useRef<CanvasStroke[]>([]);
+  const activeStrokeRef = useRef<CanvasStroke | null>(null);
 
   const characters = useMemo(() => Array.from(card.hanzi), [card.hanzi]);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
@@ -171,7 +245,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas ? getCanvasContext(canvas) : null;
     if (!ctx || !canvas) return;
 
     const dpr = window.devicePixelRatio || 1;
@@ -179,23 +253,10 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     canvas.height = 300 * dpr;
     ctx.scale(dpr, dpr);
 
-    ctx.fillStyle = getThemeColor('--color-paper', '#f8fbff');
-    ctx.fillRect(0, 0, 300, 300);
-
-    // Draw guide lines
-    ctx.strokeStyle = getThemeColor('--color-border', '#afd0f8');
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(150, 0);
-    ctx.lineTo(150, 300);
-    ctx.moveTo(0, 150);
-    ctx.lineTo(300, 150);
-    ctx.stroke();
-
-    // Reset to drawing settings
-    ctx.strokeStyle = getThemeColor('--color-stamp-red', '#1d4ed8');
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    completedStrokesRef.current = [];
+    activeStrokeRef.current = null;
+    pendingPointsRef.current = [];
+    paintCanvasBackground(ctx);
   }, []);
 
   useEffect(() => {
@@ -203,64 +264,81 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     initCanvas();
   }, [writingMode, card.hanzi, initCanvas, themeRevision]);
 
-  const startDrawing = useCallback((x: number, y: number, pressure: number) => {
+  useEffect(() => {
+    return () => {
+      if (frameRef.current !== null) {
+        window.cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  const renderCanvas = useCallback((activeStrokeComplete = false) => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const ctx = canvas ? getCanvasContext(canvas) : null;
     if (!ctx) return;
 
-    setIsDrawing(true);
-    if (!isEraser) setHasDrawn(true);
-    lastPointRef.current = { x, y, pressure };
-
-    // Set up stroke style
-    ctx.strokeStyle = isEraser
-      ? getThemeColor('--color-paper', '#f8fbff')
-      : getThemeColor('--color-stamp-red', '#1d4ed8');
-    ctx.fillStyle = ctx.strokeStyle;
-    ctx.lineWidth = isEraser ? penSize * 2 : penSize;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    if (!isEraser && writingSettings.penStyle === 'brush') {
-      drawBrushDab(ctx, { x, y, pressure }, penSize);
+    paintCanvasBackground(ctx);
+    completedStrokesRef.current.forEach((stroke) => drawCanvasStroke(ctx, stroke, true));
+    if (activeStrokeRef.current) {
+      drawCanvasStroke(ctx, activeStrokeRef.current, activeStrokeComplete);
     }
+  }, []);
 
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  }, [isEraser, penSize, writingSettings.penStyle]);
+  const flushPendingPoints = useCallback(() => {
+    frameRef.current = null;
+    const points = pendingPointsRef.current.splice(0);
 
-  const draw = useCallback((x: number, y: number, pressure: number) => {
-    if (!isDrawing) return;
+    if (activeStrokeRef.current) {
+      activeStrokeRef.current.points.push(...points);
+      renderCanvas(false);
+    }
+  }, [renderCanvas]);
+
+  const queueDrawingPoints = useCallback((points: DrawingPoint[]) => {
+    if (!isDrawingRef.current || points.length === 0) return;
+
+    pendingPointsRef.current.push(...points);
+
+    if (frameRef.current === null) {
+      frameRef.current = window.requestAnimationFrame(flushPendingPoints);
+    }
+  }, [flushPendingPoints]);
+
+  const startDrawing = useCallback((point: DrawingPoint) => {
     const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx || !lastPointRef.current) return;
+    const ctx = canvas ? getCanvasContext(canvas) : null;
+    if (!ctx) return;
 
-    const nextPoint = { x, y, pressure };
-
-    if (!isEraser && writingSettings.penStyle === 'brush') {
-      drawBrushStroke(ctx, lastPointRef.current, nextPoint, penSize);
-      lastPointRef.current = nextPoint;
-      return;
-    }
-
-    // Use quadratic curve for smoother lines
-    const midX = (lastPointRef.current.x + x) / 2;
-    const midY = (lastPointRef.current.y + y) / 2;
-
-    ctx.quadraticCurveTo(lastPointRef.current.x, lastPointRef.current.y, midX, midY);
-    ctx.stroke();
-
-    // Continue the path from the midpoint
-    ctx.beginPath();
-    ctx.moveTo(midX, midY);
-
-    lastPointRef.current = nextPoint;
-  }, [isDrawing, isEraser, penSize, writingSettings.penStyle]);
+    isDrawingRef.current = true;
+    if (!isEraser) setHasDrawn(true);
+    pendingPointsRef.current = [];
+    activeStrokeRef.current = {
+      kind: isEraser ? 'eraser' : writingSettings.penStyle,
+      points: [point],
+      size: penSize,
+      color: isEraser
+        ? getThemeColor('--color-paper', '#f8fbff')
+        : getThemeColor('--color-stamp-red', '#1d4ed8'),
+    };
+    renderCanvas(false);
+  }, [isEraser, penSize, renderCanvas, writingSettings.penStyle]);
 
   const stopDrawing = useCallback(() => {
-    setIsDrawing(false);
-    lastPointRef.current = null;
-  }, []);
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+
+    if (activeStrokeRef.current) {
+      activeStrokeRef.current.points.push(...pendingPointsRef.current);
+      completedStrokesRef.current.push(activeStrokeRef.current);
+      activeStrokeRef.current = null;
+      renderCanvas(true);
+    }
+
+    pendingPointsRef.current = [];
+    isDrawingRef.current = false;
+  }, [renderCanvas]);
 
   // Check if input should be allowed based on stylus-only mode
   const shouldAllowInput = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -274,24 +352,25 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
+    canvas.setPointerCapture(e.pointerId);
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    startDrawing(x, y, getPointerPressure(e));
+    startDrawing(getCanvasPoint(e.nativeEvent, rect));
   }, [shouldAllowInput, startDrawing]);
 
   const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!shouldAllowInput(e)) return;
+    if (!isDrawingRef.current) return;
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    draw(x, y, getPointerPressure(e));
-  }, [shouldAllowInput, draw]);
+    queueDrawingPoints(getCoalescedPointerEvents(e).map((event) => getCanvasPoint(event, rect)));
+  }, [shouldAllowInput, queueDrawingPoints]);
 
-  const handleCanvasPointerUp = useCallback(() => {
+  const handleCanvasPointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
     stopDrawing();
   }, [stopDrawing]);
 
