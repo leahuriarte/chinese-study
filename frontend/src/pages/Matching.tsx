@@ -184,7 +184,7 @@ export default function Matching() {
                   onClick={() => selectType(value)}
                   className={`p-4 border-2 text-center transition-all ${
                     isSelected
-                      ? 'bg-stamp-red text-white border-stamp-red'
+                      ? 'bg-stamp-red text-accent-contrast border-stamp-red'
                       : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
                   }`}
                 >
@@ -192,7 +192,7 @@ export default function Matching() {
                     {icon}
                   </div>
                   <div className="text-xs font-bold tracking-wider uppercase">{label}</div>
-                  <div className={`text-xs mt-1 ${isSelected ? 'text-white/70' : 'text-ink-light'}`}>
+                  <div className={`text-xs mt-1 ${isSelected ? 'text-accent-contrast' : 'text-ink-light'}`}>
                     {description}
                   </div>
                 </button>
@@ -449,7 +449,7 @@ function FilterButton({
       onClick={onClick}
       className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
         active
-          ? 'bg-stamp-red text-white border-stamp-red'
+          ? 'bg-stamp-red text-accent-contrast border-stamp-red'
           : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
       }`}
     >

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import HanziWriter from 'hanzi-writer';
 import type { Card } from '../../types';
 import type { WritingMode } from '../../pages/Study';
@@ -11,13 +11,19 @@ interface WritingQuizProps {
   onComplete: (wasCorrect: boolean) => void;
 }
 
+function getThemeColor(property: string, fallback: string) {
+  const value = getComputedStyle(document.documentElement).getPropertyValue(property).trim();
+  return value || fallback;
+}
+
 export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onComplete }: WritingQuizProps) {
   const writerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [writer, setWriter] = useState<any>(null);
+  const [writer, setWriter] = useState<HanziWriter | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [showComparison, setShowComparison] = useState(false);
+  const [themeRevision, setThemeRevision] = useState(0);
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [penSize, setPenSizeState] = useState(() => {
@@ -39,14 +45,16 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
   };
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
-  const characters = Array.from(card.hanzi);
+  const characters = useMemo(() => Array.from(card.hanzi), [card.hanzi]);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [charMistakes, setCharMistakes] = useState<number[]>([]);
 
   useEffect(() => {
-    setCurrentCharIndex(0);
-    setCharMistakes([]);
-  }, [card.hanzi]);
+    const handleThemeChange = () => setThemeRevision((revision) => revision + 1);
+
+    window.addEventListener('app-theme-change', handleThemeChange);
+    return () => window.removeEventListener('app-theme-change', handleThemeChange);
+  }, []);
 
   useEffect(() => {
     if (writingMode !== 'stroke_order' || !writerRef.current) return;
@@ -64,9 +72,11 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
       showCharacter: false,
       highlightOnComplete: true,
       drawingWidth: 20,
-      strokeColor: '#c54b3c',
-      outlineColor: '#d4c8b8',
-      radicalColor: '#c54b3c',
+      strokeColor: getThemeColor('--color-stamp-red', '#1d4ed8'),
+      drawingColor: getThemeColor('--color-stamp-red', '#1d4ed8'),
+      highlightColor: getThemeColor('--color-stamp-red-light', '#c4d4f6'),
+      outlineColor: getThemeColor('--color-border', '#afd0f8'),
+      radicalColor: getThemeColor('--color-stamp-red-dark', '#163ba4'),
     });
 
     setWriter(newWriter);
@@ -76,7 +86,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
         newWriter.cancelQuiz();
       }
     };
-  }, [card.hanzi, showHint, writingMode, currentCharIndex, characters]);
+  }, [card.hanzi, showHint, writingMode, currentCharIndex, characters, themeRevision]);
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -88,11 +98,11 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     canvas.height = 300 * dpr;
     ctx.scale(dpr, dpr);
 
-    ctx.fillStyle = '#faf6ee';
+    ctx.fillStyle = getThemeColor('--color-paper', '#f8fbff');
     ctx.fillRect(0, 0, 300, 300);
 
     // Draw guide lines
-    ctx.strokeStyle = '#d4c8b8';
+    ctx.strokeStyle = getThemeColor('--color-border', '#afd0f8');
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(150, 0);
@@ -102,7 +112,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     ctx.stroke();
 
     // Reset to drawing settings
-    ctx.strokeStyle = '#c54b3c';
+    ctx.strokeStyle = getThemeColor('--color-stamp-red', '#1d4ed8');
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   }, []);
@@ -110,7 +120,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
   useEffect(() => {
     if (writingMode !== 'freehand' || !canvasRef.current) return;
     initCanvas();
-  }, [writingMode, card.hanzi, initCanvas]);
+  }, [writingMode, card.hanzi, initCanvas, themeRevision]);
 
   const startDrawing = useCallback((x: number, y: number) => {
     const canvas = canvasRef.current;
@@ -122,7 +132,9 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     lastPointRef.current = { x, y };
 
     // Set up stroke style
-    ctx.strokeStyle = isEraser ? '#faf6ee' : '#c54b3c';
+    ctx.strokeStyle = isEraser
+      ? getThemeColor('--color-paper', '#f8fbff')
+      : getThemeColor('--color-stamp-red', '#1d4ed8');
     ctx.lineWidth = isEraser ? penSize * 2 : penSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -195,7 +207,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     setIsChecking(true);
 
     writer.quiz({
-      onComplete: (summary: any) => {
+      onComplete: (summary: { totalMistakes: number }) => {
         const mistakes = summary.totalMistakes;
         const newCharMistakes = [...charMistakes, mistakes];
         setCharMistakes(newCharMistakes);
@@ -236,9 +248,11 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
             showCharacter: false,
             highlightOnComplete: true,
             drawingWidth: 20,
-            strokeColor: '#c54b3c',
-            outlineColor: '#d4c8b8',
-            radicalColor: '#c54b3c',
+            strokeColor: getThemeColor('--color-stamp-red', '#1d4ed8'),
+            drawingColor: getThemeColor('--color-stamp-red', '#1d4ed8'),
+            highlightColor: getThemeColor('--color-stamp-red-light', '#c4d4f6'),
+            outlineColor: getThemeColor('--color-border', '#afd0f8'),
+            radicalColor: getThemeColor('--color-stamp-red-dark', '#163ba4'),
           });
           setWriter(newWriter);
         }
@@ -296,7 +310,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
               onClick={() => setIsEraser(false)}
               className={`px-3 py-1.5 text-xs tracking-wider uppercase border-2 transition ${
                 !isEraser
-                  ? 'bg-stamp-red border-stamp-red text-white'
+                  ? 'bg-stamp-red border-stamp-red text-accent-contrast'
                   : 'border-border text-ink-light hover:border-stamp-red'
               }`}
             >
@@ -306,7 +320,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
               onClick={() => setIsEraser(true)}
               className={`px-3 py-1.5 text-xs tracking-wider uppercase border-2 transition ${
                 isEraser
-                  ? 'bg-stamp-red border-stamp-red text-white'
+                  ? 'bg-stamp-red border-stamp-red text-accent-contrast'
                   : 'border-border text-ink-light hover:border-stamp-red'
               }`}
             >
@@ -336,7 +350,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
             onClick={() => setStylusOnly(!stylusOnly)}
             className={`px-3 py-1.5 text-xs tracking-wider uppercase border-2 transition ${
               stylusOnly
-                ? 'bg-stamp-red border-stamp-red text-white'
+                ? 'bg-stamp-red border-stamp-red text-accent-contrast'
                 : 'border-border text-ink-light hover:border-stamp-red'
             }`}
             title="When enabled, only Apple Pencil/stylus input is accepted (palm rejection)"
@@ -351,7 +365,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
               ref={canvasRef}
               width={300}
               height={300}
-              className={`border border-border touch-none bg-paper ${isEraser ? 'cursor-cell' : 'cursor-crosshair'}`}
+              className={`writing-surface touch-none ${isEraser ? 'cursor-cell' : 'cursor-crosshair'}`}
               style={{
                 width: 300,
                 height: 300,
@@ -372,7 +386,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
           {showComparison && (
             <div className="flex flex-col items-center">
               <div
-                className="border border-border flex items-center justify-center bg-paper overflow-hidden select-none"
+                className="writing-surface flex items-center justify-center overflow-hidden select-none"
                 style={{ width: 300, height: 300, WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
               >
                 <span
@@ -482,7 +496,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
 
       <div
         ref={writerRef}
-        className="border border-border mb-6 bg-paper"
+        className="writing-surface mb-6"
         style={{ width: 300, height: 300 }}
       />
 

@@ -242,7 +242,7 @@ function FilterButton({
       onClick={onClick}
       className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
         active
-          ? 'bg-stamp-red text-white border-stamp-red'
+          ? 'bg-stamp-red text-accent-contrast border-stamp-red'
           : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
       }`}
     >

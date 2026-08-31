@@ -57,23 +57,32 @@ export function applyTheme(theme: ThemeSettings = DEFAULT_THEME) {
   Object.entries(palette).forEach(([property, value]) => {
     root.style.setProperty(property, value);
   });
+
+  window.dispatchEvent(new CustomEvent('app-theme-change'));
 }
 
 function buildPalette(primaryColor: string, secondaryColor: string) {
   const secondaryIsDark = luminance(hexToRgb(secondaryColor)) < 0.45;
-  const ink = secondaryIsDark ? '#f8fbff' : '#172033';
-  const inkLight = mix(ink, secondaryColor, secondaryIsDark ? 0.32 : 0.42);
+  const ink = contrastRatio(secondaryColor, '#172033') >= contrastRatio(secondaryColor, '#f8fbff')
+    ? '#172033'
+    : '#f8fbff';
+  const inkLight = mix(ink, secondaryColor, secondaryIsDark ? 0.08 : 0.16);
+  const accent = ensureContrast(primaryColor, secondaryColor, ink, 4.5);
+  const onAccent = contrastRatio(accent, '#172033') >= contrastRatio(accent, '#f8fbff')
+    ? '#172033'
+    : '#f8fbff';
 
   return {
-    '--color-cream': mix(secondaryColor, primaryColor, 0.96),
+    '--color-cream': mix(secondaryColor, primaryColor, 0.04),
     '--color-paper': secondaryColor,
-    '--color-stamp-red': primaryColor,
-    '--color-stamp-red-dark': mix(primaryColor, '#000000', 0.24),
-    '--color-stamp-red-light': mix(primaryColor, secondaryColor, 0.8),
+    '--color-stamp-red': accent,
+    '--color-stamp-red-dark': mix(accent, onAccent, 0.2),
+    '--color-stamp-red-light': mix(accent, secondaryColor, 0.78),
+    '--color-accent-contrast': onAccent,
     '--color-ink': ink,
     '--color-ink-light': inkLight,
-    '--color-border': mix(primaryColor, secondaryColor, 0.68),
-    '--color-grid': mix(primaryColor, secondaryColor, 0.9),
+    '--color-border': mix(ink, secondaryColor, secondaryIsDark ? 0.54 : 0.72),
+    '--color-grid': mix(ink, secondaryColor, secondaryIsDark ? 0.74 : 0.88),
   };
 }
 
@@ -101,6 +110,30 @@ function mix(from: string, to: string, amount: number) {
     g: fromRgb.g + (toRgb.g - fromRgb.g) * amount,
     b: fromRgb.b + (toRgb.b - fromRgb.b) * amount,
   });
+}
+
+function ensureContrast(color: string, background: string, mixTarget: string, minimumRatio: number) {
+  if (contrastRatio(color, background) >= minimumRatio) {
+    return color;
+  }
+
+  for (let amount = 0.12; amount <= 1; amount += 0.08) {
+    const candidate = mix(color, mixTarget, amount);
+    if (contrastRatio(candidate, background) >= minimumRatio) {
+      return candidate;
+    }
+  }
+
+  return mixTarget;
+}
+
+function contrastRatio(first: string, second: string) {
+  const firstLuminance = luminance(hexToRgb(first));
+  const secondLuminance = luminance(hexToRgb(second));
+  const lighter = Math.max(firstLuminance, secondLuminance);
+  const darker = Math.min(firstLuminance, secondLuminance);
+
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 function luminance({ r, g, b }: { r: number; g: number; b: number }) {

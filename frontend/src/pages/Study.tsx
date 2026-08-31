@@ -803,6 +803,7 @@ export default function Study() {
         {!showResult && currentCard ? (
           mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' || mode === 'english_pinyin_to_hanzi' ? (
             <WritingQuiz
+              key={`${currentCard.id}-${writingMode}`}
               card={currentCard}
               prompt={prompt}
               subPrompt={mode === 'english_pinyin_to_hanzi' ? currentCard.pinyinDisplay : undefined}
@@ -959,18 +960,18 @@ function SessionTypeButton({
       onClick={onClick}
       className={`relative p-4 text-left transition-all border-2 ${
         active
-          ? 'bg-stamp-red border-stamp-red text-white'
+          ? 'bg-stamp-red border-stamp-red text-accent-contrast'
           : 'bg-paper border-border text-ink hover:border-stamp-red'
       }`}
     >
       {active && (
-        <div className="absolute top-2 right-2 w-4 h-4 border border-white flex items-center justify-center text-xs text-white">
+        <div className="absolute top-2 right-2 w-4 h-4 border border-accent-contrast flex items-center justify-center text-xs text-accent-contrast">
           ✓
         </div>
       )}
-      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-white' : 'text-stamp-red'}`}>{icon}</div>
-      <div className={`font-display font-semibold ${active ? 'text-white' : 'text-ink'}`}>{title}</div>
-      <div className={`text-xs mt-1 ${active ? 'text-white/70' : 'text-ink-light'}`}>
+      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-accent-contrast' : 'text-stamp-red'}`}>{icon}</div>
+      <div className={`font-display font-semibold ${active ? 'text-accent-contrast' : 'text-ink'}`}>{title}</div>
+      <div className={`text-xs mt-1 ${active ? 'text-accent-contrast' : 'text-ink-light'}`}>
         {description}
       </div>
     </button>
@@ -995,18 +996,18 @@ function WritingModeButton({
       onClick={onClick}
       className={`relative p-4 text-left transition-all border-2 ${
         active
-          ? 'bg-stamp-red border-stamp-red text-white'
+          ? 'bg-stamp-red border-stamp-red text-accent-contrast'
           : 'bg-paper border-border text-ink hover:border-stamp-red'
       }`}
     >
       {active && (
-        <div className="absolute top-2 right-2 w-4 h-4 border border-white flex items-center justify-center text-xs text-white">
+        <div className="absolute top-2 right-2 w-4 h-4 border border-accent-contrast flex items-center justify-center text-xs text-accent-contrast">
           ✓
         </div>
       )}
-      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-white' : 'text-stamp-red'}`}>{icon}</div>
-      <div className={`font-display font-semibold ${active ? 'text-white' : 'text-ink'}`}>{title}</div>
-      <div className={`text-xs mt-1 ${active ? 'text-white/70' : 'text-ink-light'}`}>
+      <div className={`text-2xl font-chinese mb-2 ${active ? 'text-accent-contrast' : 'text-stamp-red'}`}>{icon}</div>
+      <div className={`font-display font-semibold ${active ? 'text-accent-contrast' : 'text-ink'}`}>{title}</div>
+      <div className={`text-xs mt-1 ${active ? 'text-accent-contrast' : 'text-ink-light'}`}>
         {description}
       </div>
     </button>
@@ -1027,7 +1028,7 @@ function FilterButton({
       onClick={onClick}
       className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
         active
-          ? 'bg-stamp-red text-white border-stamp-red'
+          ? 'bg-stamp-red text-accent-contrast border-stamp-red'
           : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
       }`}
     >

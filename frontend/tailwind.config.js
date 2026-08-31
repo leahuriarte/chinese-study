@@ -14,6 +14,7 @@ export default {
           'red-dark': 'var(--color-stamp-red-dark)',
           'red-light': 'var(--color-stamp-red-light)',
         },
+        'accent-contrast': 'var(--color-accent-contrast)',
         ink: {
           DEFAULT: 'var(--color-ink)',
           light: 'var(--color-ink-light)',

@@ -38,9 +38,9 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
               >
                 <span className="font-chinese text-2xl leading-tight text-ink">{character}</span>
                 {pinyin && (
-                  <span className="text-[11px] text-ink-light mt-1 tracking-wide">{pinyin}</span>
+                  <span className="text-[11px] text-ink mt-1 tracking-wide">{pinyin}</span>
                 )}
-                <span className="text-[10px] text-ink-light mt-1 text-center leading-tight">
+                <span className="text-[10px] text-ink mt-1 text-center leading-tight">
                   {definition.split(';')[0].trim()}
                 </span>
               </div>
@@ -68,7 +68,7 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
                       key={comp.character}
                       className={`flex flex-col items-center px-3 py-2 min-w-[52px] border ${
                         comp.type === 'phonetic'
-                          ? 'border-blue-300 bg-blue-50'
+                          ? 'border-stamp-red bg-stamp-red-light/30'
                           : comp.type === 'semantic'
                           ? 'border-border bg-cream'
                           : 'border-border bg-paper'
@@ -78,17 +78,17 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
                         {comp.character}
                       </span>
                       {comp.type === 'phonetic' && comp.phoneticPinyin && (
-                        <span className="text-[10px] text-blue-500 mt-1 tracking-wide">
+                        <span className="text-[10px] text-ink mt-1 tracking-wide">
                           {comp.phoneticPinyin}
                         </span>
                       )}
                       {comp.meaning && (
-                        <span className="text-[10px] text-ink-light mt-0.5 text-center leading-tight max-w-[64px]">
+                        <span className="text-[10px] text-ink mt-0.5 text-center leading-tight max-w-[64px]">
                           {comp.meaning}
                         </span>
                       )}
                       <span className={`text-[9px] mt-1 tracking-wider uppercase ${
-                        comp.type === 'phonetic' ? 'text-blue-400' : 'text-ink-light/60'
+                        comp.type === 'phonetic' ? 'text-stamp-red-dark' : 'text-ink-light'
                       }`}>
                         {comp.type === 'phonetic' ? 'sound' : comp.type === 'semantic' ? 'meaning' : ''}
                       </span>
