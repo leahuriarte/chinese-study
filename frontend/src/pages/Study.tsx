@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card, QuizMode } from '../types';
@@ -16,7 +16,7 @@ const quizModes: { value: QuizMode; label: string; description: string; icon: st
 ];
 
 export type WritingMode = 'stroke_order' | 'freehand';
-export type SessionType = 'srs' | 'mastery' | 'quick';
+export type SessionType = 'mastery' | 'quick';
 
 interface CardWithProgress extends Card {
   correctCount: number;
@@ -26,7 +26,7 @@ interface CardWithProgress extends Card {
 export default function Study() {
   const [mode, setMode] = useState<QuizMode>('hanzi_to_pinyin');
   const [writingMode, setWritingMode] = useState<WritingMode>('stroke_order');
-  const [sessionType, setSessionType] = useState<SessionType>('srs');
+  const [sessionType, setSessionType] = useState<SessionType>('mastery');
   const [showModeSelector, setShowModeSelector] = useState(true);
   const [studySource, setStudySource] = useState<'lesson' | 'folder'>('lesson');
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
@@ -35,19 +35,17 @@ export default function Study() {
   const [answer, setAnswer] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
-  const [startTime, setStartTime] = useState(Date.now());
   const [answeredCard, setAnsweredCard] = useState<Card | null>(null);
   const [wasOverridden, setWasOverridden] = useState(false);
   const queryClient = useQueryClient();
 
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [cardQueue, setCardQueue] = useState<CardWithProgress[]>([]);
   const [masteredCards, setMasteredCards] = useState<Set<string>>(new Set());
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
-  const [sessionActive, setSessionActive] = useState(false);
   const [wrongCardIds, setWrongCardIds] = useState<Set<string>>(new Set());
   const [folderPromptName, setFolderPromptName] = useState('');
   const [folderPromptState, setFolderPromptState] = useState<'idle' | 'asking' | 'naming' | 'done'>('idle');
+  const [isStartingSession, setIsStartingSession] = useState(false);
 
   const filters = {
     textbookPart: studySource === 'lesson' ? (selectedPart || undefined) : undefined,
@@ -60,38 +58,9 @@ export default function Study() {
     queryFn: () => api.getFolders(),
   });
 
-  const { data: dueCardsData, isLoading: isLoadingDue } = useQuery({
-    queryKey: ['dueCards', mode, studySource, selectedPart, selectedLessons, selectedFolderId],
-    queryFn: () => api.getDueCards(mode, 20, filters),
-    enabled: sessionType === 'srs',
-  });
-
-  const { data: newCards, isLoading: isLoadingNew } = useQuery({
-    queryKey: ['newCards', mode, studySource, selectedPart, selectedLessons, selectedFolderId],
-    queryFn: () => api.getNewCards(mode, 5, filters),
-    enabled: sessionType === 'srs',
-  });
-
-  const { data: allCardsData, isLoading: isLoadingAll } = useQuery({
+  const { data: allCardsData, isLoading: isLoadingAll, refetch: refetchCards } = useQuery({
     queryKey: ['allCards', studySource, selectedPart, selectedLessons, selectedFolderId],
     queryFn: () => api.getCards({ ...filters, limit: 500 }),
-    enabled: sessionType !== 'srs',
-  });
-
-  const reviewMutation = useMutation({
-    mutationFn: (data: {
-      cardId: string;
-      mode: QuizMode;
-      quality: number;
-      responseTimeMs: number;
-    }) => api.submitReview(data),
-    onSuccess: () => {
-      if (sessionType === 'srs') {
-        queryClient.invalidateQueries({ queryKey: ['dueCards'] });
-        queryClient.invalidateQueries({ queryKey: ['newCards'] });
-      }
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-    },
   });
 
   const createMissedFolderMutation = useMutation({
@@ -106,45 +75,13 @@ export default function Study() {
     },
   });
 
-  const srsCards: Card[] = sessionType === 'srs' ? [
-    ...(dueCardsData?.map((d) => d.card) || []),
-    ...(newCards || []),
-  ] : [];
-
-  const isLoading = sessionType === 'srs'
-    ? (isLoadingDue || isLoadingNew)
-    : isLoadingAll;
+  const isLoading = isLoadingAll || isStartingSession;
 
   const getCurrentCard = useCallback((): Card | null => {
-    if (sessionType === 'srs') {
-      return srsCards[currentIndex] || null;
-    } else {
-      return cardQueue[0] || null;
-    }
-  }, [sessionType, srsCards, currentIndex, cardQueue]);
+    return cardQueue[0] || null;
+  }, [cardQueue]);
 
   const currentCard = getCurrentCard();
-
-  useEffect(() => {
-    if (
-      sessionType !== 'srs' &&
-      allCardsData?.cards &&
-      allCardsData.cards.length > 0 &&
-      cardQueue.length === 0 &&
-      sessionActive &&
-      masteredCards.size === 0 &&
-      completedCards.size === 0
-    ) {
-      const shuffled = [...allCardsData.cards]
-        .sort(() => Math.random() - 0.5)
-        .map(card => ({ ...card, correctCount: 0, totalAttempts: 0 }));
-      setCardQueue(shuffled);
-    }
-  }, [sessionType, allCardsData, cardQueue.length, sessionActive, masteredCards.size, completedCards.size]);
-
-  useEffect(() => {
-    setStartTime(Date.now());
-  }, [currentCard?.id]);
 
   const getCorrectAnswer = (card: Card, quizMode: QuizMode): string => {
     switch (quizMode) {
@@ -216,7 +153,7 @@ export default function Study() {
     }
 
     if (quizMode === 'hanzi_to_english' || quizMode === 'pinyin_to_english') {
-      const parts = normalizedCorrect.split(/[;,\/]/).map(p => p.trim()).filter(p => p.length > 0);
+      const parts = normalizedCorrect.split(/[;,/]/).map(p => p.trim()).filter(p => p.length > 0);
 
       for (const part of parts) {
         if (normalizedUser === part) {
@@ -242,7 +179,6 @@ export default function Study() {
   const processAnswer = (correct: boolean) => {
     if (!currentCard) return;
 
-    const responseTime = Date.now() - startTime;
     setAnsweredCard(currentCard);
     setWasCorrect(correct);
     setShowResult(true);
@@ -251,15 +187,6 @@ export default function Study() {
       setWrongCardIds(prev => new Set([...prev, currentCard.id]));
     }
 
-    if (sessionType === 'srs') {
-      const quality = correct ? 4 : 2;
-      reviewMutation.mutate({
-        cardId: currentCard.id,
-        mode,
-        quality,
-        responseTimeMs: responseTime,
-      });
-    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -280,16 +207,6 @@ export default function Study() {
 
     setWasCorrect(true);
     setWasOverridden(true);
-
-    if (sessionType === 'srs') {
-      const responseTime = Date.now() - startTime;
-      reviewMutation.mutate({
-        cardId: answeredCard.id,
-        mode,
-        quality: 4,
-        responseTimeMs: responseTime,
-      });
-    }
   };
 
   const handleNext = () => {
@@ -300,9 +217,7 @@ export default function Study() {
     setAnsweredCard(null);
     setWasOverridden(false);
 
-    if (sessionType === 'srs') {
-      setCurrentIndex((prev) => prev + 1);
-    } else if (sessionType === 'quick') {
+    if (sessionType === 'quick') {
       if (wasCorrect) {
         // Correct: remove from queue and mark as completed
         setCompletedCards(prev => new Set(prev).add(currentCard.id));
@@ -349,25 +264,33 @@ export default function Study() {
     }
   };
 
-  const startStudying = (selectedMode: QuizMode) => {
+  const startStudying = async (selectedMode: QuizMode) => {
+    setIsStartingSession(true);
     setMode(selectedMode);
     setShowModeSelector(false);
-    setCurrentIndex(0);
     setAnswer('');
     setShowResult(false);
     setWasOverridden(false);
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
-    setSessionActive(true);
     setWrongCardIds(new Set());
     setFolderPromptState('idle');
     setFolderPromptName('');
+
+    try {
+      const cardsData = allCardsData?.cards ? allCardsData : (await refetchCards()).data;
+      const shuffled = [...(cardsData?.cards || [])]
+        .sort(() => Math.random() - 0.5)
+        .map(card => ({ ...card, correctCount: 0, totalAttempts: 0 }));
+      setCardQueue(shuffled);
+    } finally {
+      setIsStartingSession(false);
+    }
   };
 
   const changeMode = () => {
     setShowModeSelector(true);
-    setCurrentIndex(0);
     setAnswer('');
     setShowResult(false);
     setAnsweredCard(null);
@@ -375,18 +298,16 @@ export default function Study() {
     setCardQueue([]);
     setMasteredCards(new Set());
     setCompletedCards(new Set());
-    setSessionActive(false);
     setWrongCardIds(new Set());
     setFolderPromptState('idle');
     setFolderPromptName('');
+    setIsStartingSession(false);
     setStudySource('lesson');
     setSelectedFolderId(null);
   };
 
   const getProgress = () => {
-    if (sessionType === 'srs') {
-      return { current: currentIndex, total: srsCards.length };
-    } else if (sessionType === 'quick') {
+    if (sessionType === 'quick') {
       const total = (allCardsData?.cards?.length || 0);
       return { current: completedCards.size, total };
     } else {
@@ -398,11 +319,7 @@ export default function Study() {
   const progress = getProgress();
 
   const isSessionComplete = () => {
-    if (sessionType === 'srs') {
-      return currentIndex >= srsCards.length && srsCards.length > 0;
-    } else {
-      return cardQueue.length === 0 && (masteredCards.size > 0 || completedCards.size > 0);
-    }
+    return cardQueue.length === 0 && (masteredCards.size > 0 || completedCards.size > 0);
   };
 
   // Mode Selector Screen
@@ -427,14 +344,7 @@ export default function Study() {
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <SessionTypeButton
-              active={sessionType === 'srs'}
-              onClick={() => setSessionType('srs')}
-              icon="脑"
-              title="Spaced Repetition"
-              description="Review due cards with SRS algorithm"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <SessionTypeButton
               active={sessionType === 'mastery'}
               onClick={() => setSessionType('mastery')}
@@ -566,7 +476,7 @@ export default function Study() {
             {quizModes.map((quizMode) => (
               <button
                 key={quizMode.value}
-                onClick={() => startStudying(quizMode.value)}
+                onClick={() => void startStudying(quizMode.value)}
                 className="group document-card p-5 text-left hover:shadow-document-hover transition-all"
               >
                 <div className="flex items-start gap-4">
@@ -604,10 +514,10 @@ export default function Study() {
 
   // Session Complete State
   if (isSessionComplete() || (!currentCard && !isLoading)) {
-    const sessionLabel = sessionType === 'srs' ? 'Spaced Repetition' : sessionType === 'mastery' ? 'Mastery' : 'Quick Review';
+    const sessionLabel = sessionType === 'mastery' ? 'Mastery' : 'Quick Review';
 
     const buildDefaultFolderName = () => {
-      const typeLabel = sessionType === 'mastery' ? 'Mastery' : sessionType === 'quick' ? 'Quick' : 'SRS';
+      const typeLabel = sessionType === 'mastery' ? 'Mastery' : 'Quick';
       const sourceLabel = studySource === 'folder'
         ? foldersData?.find(f => f.id === selectedFolderId)?.name || 'Folder'
         : selectedLessons.length > 0
@@ -626,7 +536,6 @@ export default function Study() {
             {sessionType === 'mastery' ? 'All Cards Mastered!' : 'All Done!'}
           </h1>
           <p className="text-ink-light mb-2">
-            {sessionType === 'srs' && "You've completed all your due reviews."}
             {sessionType === 'mastery' && `You got all ${masteredCards.size} cards correct 3 times each!`}
             {sessionType === 'quick' && `You reviewed all ${completedCards.size} cards.`}
           </p>
@@ -731,9 +640,9 @@ export default function Study() {
   const currentModeLabel = quizModes.find((m) => m.value === mode)?.label || mode;
   const prompt = currentCard ? getPrompt(currentCard, mode) : '';
   const placeholder = getPlaceholder(mode);
-  const sessionLabel = sessionType === 'srs' ? 'SRS' : sessionType === 'mastery' ? 'Mastery' : 'Quick';
+  const sessionLabel = sessionType === 'mastery' ? 'Mastery' : 'Quick';
 
-  const currentCardProgress = sessionType === 'mastery' && cardQueue[0]
+  const currentMasteryCard = sessionType === 'mastery' && cardQueue[0]
     ? cardQueue[0]
     : null;
 
@@ -773,13 +682,13 @@ export default function Study() {
           <div className="font-display-alt text-2xl font-semibold text-ink">
             {progress.current} / {progress.total}
           </div>
-          {sessionType === 'mastery' && currentCardProgress && (
+          {sessionType === 'mastery' && currentMasteryCard && (
             <div className="flex gap-1 justify-end mt-1">
               {[0, 1, 2].map(i => (
                 <div
                   key={i}
                   className={`w-2 h-2 ${
-                    i < currentCardProgress.correctCount
+                    i < currentMasteryCard.correctCount
                       ? 'bg-green-600'
                       : 'bg-border'
                   }`}
@@ -866,11 +775,11 @@ export default function Study() {
               <div className={`display-title text-2xl ${wasCorrect ? 'text-green-600' : 'text-stamp-red'}`}>
                 {wasCorrect ? 'Correct!' : 'Incorrect'}
               </div>
-              {sessionType === 'mastery' && wasCorrect && currentCardProgress && (
+              {sessionType === 'mastery' && wasCorrect && currentMasteryCard && (
                 <div className="text-sm text-ink-light mt-2">
-                  {currentCardProgress.correctCount + 1 >= 3
+                  {currentMasteryCard.correctCount + 1 >= 3
                     ? 'Card mastered!'
-                    : `${currentCardProgress.correctCount + 1}/3 correct`}
+                    : `${currentMasteryCard.correctCount + 1}/3 correct`}
                 </div>
               )}
             </div>

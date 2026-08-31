@@ -1,6 +1,6 @@
 # Chinese Study App
 
-A progressive web app for studying Chinese with flashcard review, spaced repetition (SM-2 algorithm), writing practice, and multiple quiz modes.
+A progressive web app for studying Chinese with flashcard practice, writing practice, folders, and multiple quiz modes.
 
 ## Features
 
@@ -8,17 +8,18 @@ A progressive web app for studying Chinese with flashcard review, spaced repetit
 
 - **Authentication**: User registration, login with JWT tokens
 - **Card Management**: Create, read, update, delete vocabulary cards
-- **Spaced Repetition**: SM-2 algorithm for intelligent review scheduling
-- **6 Quiz Modes**:
+- **Study Sessions**: Mastery Mode and Quick Review for focused practice
+- **7 Quiz Modes**:
   - Hanzi → Pinyin (see character, type pinyin)
   - Hanzi → English (see character, type meaning)
   - Pinyin → Hanzi (see pinyin, write character)
   - Pinyin → English (see pinyin, type meaning)
   - English → Hanzi (see meaning, write character)
+  - English + Pinyin → Hanzi (see meaning and pinyin, write character)
   - English → Pinyin (see meaning, type pinyin)
 - **Writing Practice**: Integrated Hanzi Writer for stroke-by-stroke character writing practice
 - **HSK Level Management**: Filter and organize cards by HSK levels 1-6
-- **Study Statistics**: Track progress, review history, and accuracy across all quiz modes
+- **Study Statistics**: Track collection size and study data
 - **Mobile-Responsive UI**: Works seamlessly on desktop and mobile devices
 
 ## Tech Stack
@@ -180,11 +181,7 @@ chinese-study/
 - `GET /api/cards/export` - Export all cards
 
 ### Study
-- `GET /api/study/due?mode=X` - Get due cards for review
-- `GET /api/study/new?mode=X` - Get new cards to learn
-- `POST /api/study/review` - Submit review result
 - `GET /api/study/stats` - Get study statistics
-- `GET /api/study/heatmap` - Get activity heatmap
 
 ## Development Roadmap
 
@@ -193,13 +190,12 @@ See `chinese-study-app-architecture.md` for the full roadmap. Phase 1 (MVP) is c
 ### Completed (Phase 1)
 - [x] User authentication
 - [x] Card CRUD operations
-- [x] Basic spaced repetition (SM-2)
-- [x] Single quiz mode (hanzi → pinyin)
+- [x] Mastery and quick-review study sessions
+- [x] Multiple quiz modes
 - [x] Study statistics
 - [x] Mobile-responsive UI
 
 ### Next Steps (Phase 2+)
-- [ ] All 6 quiz modes
 - [ ] Hanzi writing practice with Hanzi Writer
 - [ ] Offline support (PWA)
 - [ ] Enhanced statistics and heatmaps

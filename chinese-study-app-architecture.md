@@ -1,8 +1,10 @@
 # Chinese Study App Architecture
 
+> Note: this document includes historical planning notes. Spaced repetition/SRS mode has been removed from the live application; any SRS, SM-2, due-card, `CardProgress`, or `ReviewLog` sections below describe legacy design/data only.
+
 ## Overview
 
-A PWA for studying Chinese that combines flashcard review (with spaced repetition), writing practice, and multiple quiz modes. Data persists to a backend so it syncs across devices.
+A PWA for studying Chinese that combines flashcard practice, writing practice, folders, and multiple quiz modes. Data persists to a backend so it syncs across devices.
 
 ## Quiz Modes
 
@@ -13,7 +15,7 @@ A PWA for studying Chinese that combines flashcard review (with spaced repetitio
 5. **Pinyin → Hanzi**: Show pinyin, user writes or selects character
 6. **Hanzi → English**: Show character, user types/selects meaning (implicit, good to have)
 
-Each mode tracks its own SRS data separately, since recognizing a character doesn't mean you can produce it.
+The live app supports Mastery Mode and Quick Review sessions. Legacy SRS data may exist in the database, but it is not part of active study flow.
 
 ---
 
@@ -527,7 +529,7 @@ window.addEventListener('online', async () => {
 {
   "name": "Chinese Study App",
   "short_name": "汉语",
-  "description": "Learn Chinese with spaced repetition and writing practice",
+  "description": "Learn Chinese with flashcard and writing practice",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -555,12 +557,11 @@ window.addEventListener('online', async () => {
 - [ ] User auth (register, login)
 - [ ] Card CRUD (add, edit, delete, list)
 - [ ] Single quiz mode working (hanzi → pinyin)
-- [ ] Basic SRS implementation
+- [ ] Mastery and quick-review sessions
 - [ ] Simple UI, mobile-responsive
 
 ### Phase 2: All Quiz Modes
 - [ ] Implement all 6 quiz modes
-- [ ] Per-mode progress tracking
 - [ ] Mode selection UI
 - [ ] Answer validation for each mode type
 

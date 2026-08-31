@@ -34,11 +34,8 @@ Frontend (`api` singleton in `frontend/src/lib/api.ts`) → Express routes (`/ap
 
 Auth uses JWT bearer tokens stored in localStorage. The `auth` middleware (`backend/src/middleware/auth.ts`) attaches `userId` to `AuthRequest` (extends Express `Request`).
 
-### SRS system
-Each card has separate `CardProgress` rows per quiz mode (7 modes: `hanzi_to_pinyin`, `pinyin_to_english`, `english_to_hanzi`, `english_to_pinyin`, `pinyin_to_hanzi`, `hanzi_to_english`, plus a stylus/writing mode). The SM-2 algorithm lives in the backend study service. Reviewing a card via `POST /api/study/review` updates `CardProgress` and creates a `ReviewLog`.
-
 ### Study session flow
-`GET /api/study/due` returns cards where `nextReviewDate <= now` for a given mode. `GET /api/study/new` returns cards with no `CardProgress` record for that mode. The frontend mixes due + new cards into a session queue.
+The Study page offers Mastery Mode and Quick Review. Both fetch ordinary card lists through `GET /api/cards` with lesson/folder filters, then manage the session queue entirely in frontend state. Spaced repetition mode and the `/api/study/due`, `/api/study/new`, and `/api/study/review` endpoints have been removed. Legacy Prisma `CardProgress` and `ReviewLog` models may still exist for old data but are not active runtime features.
 
 ### Folders
 Cards can belong to many folders (`FolderCard` join table). Filter cards or study sessions by `folderId`. Backend uses `folderCards: { some: { folderId } }` in Prisma queries for nested filtering.

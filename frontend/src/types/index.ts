@@ -47,51 +47,6 @@ export interface Card {
   updatedAt: Date;
 }
 
-export interface CardProgress {
-  id: string;
-  cardId: string;
-  userId: string;
-  mode: QuizMode;
-
-  // SRS fields (SM-2 algorithm)
-  easeFactor: number;          // starts at 2.5
-  interval: number;            // days until next review
-  repetitions: number;         // consecutive correct answers
-  nextReviewDate: Date;
-
-  // Stats
-  totalReviews: number;
-  correctCount: number;
-  lastReviewedAt: Date | null;
-}
-
-export interface StudySession {
-  id: string;
-  userId: string;
-  startedAt: Date;
-  endedAt: Date | null;
-  mode: QuizMode;
-  cardsReviewed: number;
-  correctCount: number;
-}
-
-export interface ReviewLog {
-  id: string;
-  cardProgressId: string;
-  userId: string;
-  reviewedAt: Date;
-  quality: number;             // 0-5 (SM-2 quality rating)
-  responseTimeMs: number;
-  wasCorrect: boolean;
-}
-
-export interface SM2Result {
-  easeFactor: number;
-  interval: number;
-  repetitions: number;
-  nextReviewDate: Date;
-}
-
 export interface Folder {
   id: string;
   userId: string;

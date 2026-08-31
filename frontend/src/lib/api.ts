@@ -1,4 +1,4 @@
-import type { User, Card, CardProgress, QuizMode, Folder, UserSettings } from '../types';
+import type { User, Card, Folder, UserSettings } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -157,59 +157,10 @@ class ApiClient {
   }
 
   // Study endpoints
-  async getDueCards(mode: QuizMode, limit: number = 20, filters?: { textbookPart?: number; lessonNumbers?: number[]; folderId?: string }) {
-    const queryParams = new URLSearchParams();
-    queryParams.set('mode', mode);
-    queryParams.set('limit', limit.toString());
-    if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
-    if (filters?.lessonNumbers && filters.lessonNumbers.length > 0) queryParams.set('lessonNumbers', filters.lessonNumbers.join(','));
-    if (filters?.folderId) queryParams.set('folderId', filters.folderId);
-
-    return this.request<Array<{ cardProgress: CardProgress; card: Card }>>(
-      `/api/study/due?${queryParams}`
-    );
-  }
-
-  async getNewCards(mode: QuizMode, limit: number = 10, filters?: { textbookPart?: number; lessonNumbers?: number[]; folderId?: string }) {
-    const queryParams = new URLSearchParams();
-    queryParams.set('mode', mode);
-    queryParams.set('limit', limit.toString());
-    if (filters?.textbookPart) queryParams.set('textbookPart', filters.textbookPart.toString());
-    if (filters?.lessonNumbers && filters.lessonNumbers.length > 0) queryParams.set('lessonNumbers', filters.lessonNumbers.join(','));
-    if (filters?.folderId) queryParams.set('folderId', filters.folderId);
-
-    return this.request<Card[]>(`/api/study/new?${queryParams}`);
-  }
-
-  async submitReview(data: {
-    cardId: string;
-    mode: QuizMode;
-    quality: number;
-    responseTimeMs: number;
-  }) {
-    return this.request<{
-      cardProgress: CardProgress;
-      wasCorrect: boolean;
-      nextReview: Date;
-    }>('/api/study/review', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   async getStats() {
     return this.request<{
       totalCards: number;
-      totalReviews: number;
-      dueCounts: Array<{ mode: QuizMode; count: number }>;
-      recentSessions: any[];
     }>('/api/study/stats');
-  }
-
-  async getHeatmap(days: number = 90) {
-    return this.request<Record<string, { total: number; correct: number }>>(
-      `/api/study/heatmap?days=${days}`
-    );
   }
 
   // Folder endpoints
