@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',')
+  ? process.env.CORS_ORIGIN.split(',').map((origin) => origin.trim()).filter(Boolean)
   : ['http://localhost:5173'];
 
 app.use(cors({
