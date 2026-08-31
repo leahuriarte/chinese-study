@@ -36,6 +36,7 @@ export const COLOR_THEMES: ColorTheme[] = [
 const DEFAULT_THEME = COLOR_THEMES[0];
 const DEFAULT_WRITING_SETTINGS: WritingSettings = {
   penStyle: 'smooth',
+  brushSensitivity: 75,
 };
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 const PEN_STYLES = new Set<PenStyle>(['smooth', 'brush']);
@@ -56,14 +57,16 @@ export function getThemeFromSettings(settings?: UserSettings | null): ThemeSetti
 
 export function getWritingSettingsFromSettings(settings?: UserSettings | null): WritingSettings {
   const penStyle = settings?.writing?.penStyle;
+  const brushSensitivity = settings?.writing?.brushSensitivity;
 
-  if (penStyle && PEN_STYLES.has(penStyle)) {
-    return {
-      penStyle,
-    };
-  }
-
-  return DEFAULT_WRITING_SETTINGS;
+  return {
+    penStyle: penStyle && PEN_STYLES.has(penStyle)
+      ? penStyle
+      : DEFAULT_WRITING_SETTINGS.penStyle,
+    brushSensitivity: typeof brushSensitivity === 'number' && Number.isFinite(brushSensitivity)
+      ? Math.min(100, Math.max(1, Math.round(brushSensitivity)))
+      : DEFAULT_WRITING_SETTINGS.brushSensitivity,
+  };
 }
 
 export function applyTheme(theme: ThemeSettings = DEFAULT_THEME) {

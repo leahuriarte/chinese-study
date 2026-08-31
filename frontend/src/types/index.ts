@@ -33,6 +33,7 @@ export type PenStyle = 'smooth' | 'brush';
 
 export interface WritingSettings {
   penStyle: PenStyle;
+  brushSensitivity: number;
 }
 
 export interface Card {

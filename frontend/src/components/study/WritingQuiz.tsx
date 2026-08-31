@@ -27,6 +27,7 @@ type CanvasStroke = {
   points: DrawingPoint[];
   size: number;
   color: string;
+  sensitivity: number;
 };
 
 function getCanvasContext(canvas: HTMLCanvasElement) {
@@ -73,6 +74,18 @@ function drawBrushDab(ctx: CanvasRenderingContext2D, point: DrawingPoint, penSiz
   ctx.globalAlpha = 1;
 }
 
+function getAdjustedBrushPoints(points: DrawingPoint[], sensitivity: number): DrawingPoint[] {
+  const sensitivityAmount = sensitivity / 100;
+  const pressureFloor = 0.32 + sensitivityAmount * 0.06;
+  const pressureMultiplier = 0.85 + sensitivityAmount * 0.75;
+
+  return points.map(([x, y, pressure]) => [
+    x,
+    y,
+    Math.min(1, Math.max(pressureFloor, pressure * pressureMultiplier)),
+  ] as DrawingPoint);
+}
+
 function drawSmoothStroke(ctx: CanvasRenderingContext2D, stroke: CanvasStroke) {
   const [firstPoint, ...restPoints] = stroke.points;
   if (!firstPoint) return;
@@ -111,18 +124,20 @@ function drawFreehandStroke(
   ctx: CanvasRenderingContext2D,
   points: DrawingPoint[],
   penSize: number,
+  sensitivity: number,
   isComplete: boolean
 ) {
   if (points.length === 0) return;
 
   if (points.length < 2) {
-    drawBrushDab(ctx, points[0], penSize);
+    drawBrushDab(ctx, getAdjustedBrushPoints(points, sensitivity)[0], penSize);
     return;
   }
 
+  const sensitivityAmount = sensitivity / 100;
   const options: StrokeOptions = {
-    size: penSize * 2.15,
-    thinning: 0.68,
+    size: penSize * (2.25 + sensitivityAmount * 0.25),
+    thinning: 0.42 + sensitivityAmount * 0.4,
     smoothing: 0.62,
     streamline: 0.42,
     simulatePressure: false,
@@ -134,7 +149,7 @@ function drawFreehandStroke(
       cap: true,
     },
   };
-  const outline = getStroke(points, options);
+  const outline = getStroke(getAdjustedBrushPoints(points, sensitivity), options);
 
   if (outline.length < 2) return;
 
@@ -156,7 +171,7 @@ function drawCanvasStroke(
 ) {
   if (stroke.kind === 'brush') {
     ctx.fillStyle = stroke.color;
-    drawFreehandStroke(ctx, stroke.points, stroke.size, isComplete);
+    drawFreehandStroke(ctx, stroke.points, stroke.size, stroke.sensitivity, isComplete);
     return;
   }
 
@@ -319,9 +334,10 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
       color: isEraser
         ? getThemeColor('--color-paper', '#f8fbff')
         : getThemeColor('--color-stamp-red', '#1d4ed8'),
+      sensitivity: writingSettings.brushSensitivity,
     };
     renderCanvas(false);
-  }, [isEraser, penSize, renderCanvas, writingSettings.penStyle]);
+  }, [isEraser, penSize, renderCanvas, writingSettings.brushSensitivity, writingSettings.penStyle]);
 
   const stopDrawing = useCallback(() => {
     if (frameRef.current !== null) {

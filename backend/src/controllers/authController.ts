@@ -27,6 +27,7 @@ const updateSettingsSchema = z.object({
   }).optional(),
   writing: z.object({
     penStyle: z.enum(['smooth', 'brush']),
+    brushSensitivity: z.number().int().min(1).max(100),
   }).optional(),
 });
 

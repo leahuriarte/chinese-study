@@ -29,6 +29,7 @@ const defaultSettings = {
   },
   writing: {
     penStyle: 'smooth',
+    brushSensitivity: 75,
   },
 };
 

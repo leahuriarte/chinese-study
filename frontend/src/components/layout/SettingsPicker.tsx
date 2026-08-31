@@ -50,7 +50,8 @@ export default function SettingsPicker() {
     draftTheme.primaryColor.toLowerCase() !== savedTheme.primaryColor.toLowerCase() ||
     draftTheme.secondaryColor.toLowerCase() !== savedTheme.secondaryColor.toLowerCase() ||
     draftTheme.presetId !== savedTheme.presetId ||
-    draftWritingSettings.penStyle !== savedWritingSettings.penStyle;
+    draftWritingSettings.penStyle !== savedWritingSettings.penStyle ||
+    draftWritingSettings.brushSensitivity !== savedWritingSettings.brushSensitivity;
 
   const selectTheme = (theme: ThemeSettings) => {
     setDraftTheme(theme);
@@ -69,7 +70,13 @@ export default function SettingsPicker() {
   };
 
   const updatePenStyle = (penStyle: PenStyle) => {
-    setDraftWritingSettings({ penStyle });
+    setDraftWritingSettings((settings) => ({ ...settings, penStyle }));
+    setError('');
+    setSavedMessage('');
+  };
+
+  const updateBrushSensitivity = (brushSensitivity: number) => {
+    setDraftWritingSettings((settings) => ({ ...settings, brushSensitivity }));
     setError('');
     setSavedMessage('');
   };
@@ -184,6 +191,27 @@ export default function SettingsPicker() {
               onSelect={updatePenStyle}
             />
           </div>
+
+          <label htmlFor="brush-sensitivity" className="block mt-4">
+            <span className="flex items-center justify-between gap-3 mb-2">
+              <span className="text-xs tracking-wider uppercase text-ink-light">
+                Brush Sensitivity
+              </span>
+              <span className="text-xs text-ink-light font-mono">
+                {draftWritingSettings.brushSensitivity}
+              </span>
+            </span>
+            <input
+              id="brush-sensitivity"
+              type="range"
+              min="1"
+              max="100"
+              step="1"
+              value={draftWritingSettings.brushSensitivity}
+              onChange={(event) => updateBrushSensitivity(Number(event.target.value))}
+              className="w-full cursor-pointer accent-stamp-red"
+            />
+          </label>
 
           <div className="mt-5 flex items-center gap-3">
             <button
