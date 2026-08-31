@@ -17,6 +17,16 @@ const refreshSchema = z.object({
   refreshToken: z.string(),
 });
 
+const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Expected a hex color like #1d4ed8');
+
+const updateSettingsSchema = z.object({
+  theme: z.object({
+    presetId: z.string().min(1).max(40),
+    primaryColor: hexColorSchema,
+    secondaryColor: hexColorSchema,
+  }),
+});
+
 export const authController = {
   async register(req: Request, res: Response): Promise<void> {
     try {
@@ -84,6 +94,25 @@ export const authController = {
       const user = await authService.getMe(userId);
       res.json(user);
     } catch (error) {
+      if (error instanceof Error) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+
+  async updateSettings(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.userId!;
+      const settingsPatch = updateSettingsSchema.parse(req.body);
+      const user = await authService.updateSettings(userId, settingsPatch);
+      res.json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: 'Validation error', details: error.issues });
+        return;
+      }
       if (error instanceof Error) {
         res.status(404).json({ error: error.message });
         return;

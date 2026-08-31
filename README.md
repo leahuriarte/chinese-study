@@ -168,6 +168,7 @@ chinese-study/
 - `POST /api/auth/login` - Login
 - `POST /api/auth/refresh` - Refresh access token
 - `POST /api/auth/logout` - Logout
+- `PATCH /api/auth/settings` - Update account settings
 
 ### Cards
 - `GET /api/cards` - List cards (with pagination, filters)

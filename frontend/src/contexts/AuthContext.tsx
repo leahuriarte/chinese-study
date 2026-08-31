@@ -1,12 +1,14 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { api } from '../lib/api';
-import type { User } from '../types';
+import { applyTheme, getThemeFromSettings } from '../lib/theme';
+import type { User, UserSettings } from '../types';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  updateSettings: (settings: Partial<UserSettings>) => Promise<User>;
   logout: () => void;
 }
 
@@ -36,6 +38,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  useEffect(() => {
+    applyTheme(getThemeFromSettings(user?.settings));
+  }, [user?.settings]);
+
   const login = async (email: string, password: string) => {
     const response = await api.login(email, password);
     api.setToken(response.accessToken);
@@ -48,13 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(response.user);
   };
 
+  const updateSettings = async (settings: Partial<UserSettings>) => {
+    const updatedUser = await api.updateSettings(settings);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   const logout = () => {
     api.setToken(null);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, updateSettings, logout }}>
       {children}
     </AuthContext.Provider>
   );

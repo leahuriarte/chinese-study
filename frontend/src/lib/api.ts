@@ -1,4 +1,4 @@
-import type { User, Card, CardProgress, QuizMode, Folder } from '../types';
+import type { User, Card, CardProgress, QuizMode, Folder, UserSettings } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -86,12 +86,14 @@ class ApiClient {
   }
 
   async getMe() {
-    return this.request<{
-      id: string;
-      email: string;
-      createdAt: string;
-      settings: any;
-    }>('/api/auth/me');
+    return this.request<User>('/api/auth/me');
+  }
+
+  async updateSettings(settings: Partial<UserSettings>) {
+    return this.request<User>('/api/auth/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
   }
 
   // Card endpoints

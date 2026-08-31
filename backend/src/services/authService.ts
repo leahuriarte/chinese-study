@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { Prisma } from '@prisma/client';
 import prisma from '../db.js';
 import { seedVocabForUser } from './vocabSeedService.js';
 
@@ -15,6 +16,18 @@ export interface LoginData {
   email: string;
   password: string;
 }
+
+const defaultSettings = {
+  dailyNewCards: 20,
+  dailyReviewLimit: 100,
+  preferredQuizModes: ['hanzi_to_pinyin'],
+  showPinyinTones: 'marks',
+  theme: {
+    presetId: 'china-blue',
+    primaryColor: '#1d4ed8',
+    secondaryColor: '#f8fbff',
+  },
+};
 
 export const authService = {
   async register(data: RegisterData) {
@@ -37,12 +50,7 @@ export const authService = {
       data: {
         email,
         passwordHash,
-        settings: {
-          dailyNewCards: 20,
-          dailyReviewLimit: 100,
-          preferredQuizModes: ['hanzi_to_pinyin'],
-          showPinyinTones: 'marks',
-        },
+        settings: defaultSettings,
       },
       select: {
         id: true,
@@ -132,6 +140,38 @@ export const authService = {
     }
 
     return user;
+  },
+
+  async updateSettings(userId: string, settingsPatch: Prisma.JsonObject) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { settings: true },
+    });
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const currentSettings =
+      typeof user.settings === 'object' && user.settings !== null && !Array.isArray(user.settings)
+        ? (user.settings as Prisma.JsonObject)
+        : {};
+
+    return prisma.user.update({
+      where: { id: userId },
+      data: {
+        settings: {
+          ...currentSettings,
+          ...settingsPatch,
+        },
+      },
+      select: {
+        id: true,
+        email: true,
+        createdAt: true,
+        settings: true,
+      },
+    });
   },
 
   async refreshToken(refreshToken: string) {

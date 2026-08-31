@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import ThemePicker from './ThemePicker';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -61,6 +62,8 @@ export default function Header() {
             <NavLink to="/stats" active={isActive('/stats')}>
               Stats
             </NavLink>
+            <div className="w-px h-6 bg-border mx-4" />
+            <ThemePicker />
             <div className="w-px h-6 bg-border mx-4" />
             <button
               onClick={handleLogout}

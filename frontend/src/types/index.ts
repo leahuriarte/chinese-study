@@ -19,6 +19,13 @@ export interface UserSettings {
   dailyReviewLimit: number;     // default 100
   preferredQuizModes: QuizMode[];
   showPinyinTones: 'numbers' | 'marks'; // e.g., "ma3" vs "mǎ"
+  theme?: ThemeSettings;
+}
+
+export interface ThemeSettings {
+  presetId: string;
+  primaryColor: string;
+  secondaryColor: string;
 }
 
 export interface Card {

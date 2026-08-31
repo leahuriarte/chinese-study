@@ -7,19 +7,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        cream: '#f7f3eb',
-        paper: '#faf6ee',
+        cream: 'var(--color-cream)',
+        paper: 'var(--color-paper)',
         stamp: {
-          red: '#c54b3c',
-          'red-dark': '#a33d31',
-          'red-light': '#e8d4d0',
+          red: 'var(--color-stamp-red)',
+          'red-dark': 'var(--color-stamp-red-dark)',
+          'red-light': 'var(--color-stamp-red-light)',
         },
         ink: {
-          DEFAULT: '#2c2420',
-          light: '#5c5450',
+          DEFAULT: 'var(--color-ink)',
+          light: 'var(--color-ink-light)',
         },
-        border: '#d4c8b8',
-        grid: '#e8e0d4',
+        border: 'var(--color-border)',
+        grid: 'var(--color-grid)',
       },
       fontFamily: {
         display: ['Instrument Serif', 'Noto Serif SC', 'Georgia', 'serif'],
@@ -33,9 +33,9 @@ export default {
         '88': '22rem',
       },
       boxShadow: {
-        'document': '2px 2px 0 rgba(44, 36, 32, 0.1)',
-        'document-hover': '4px 4px 0 rgba(44, 36, 32, 0.15)',
-        'stamp': 'inset 0 0 10px rgba(197, 75, 60, 0.2)',
+        'document': '2px 2px 0 color-mix(in srgb, var(--color-ink) 10%, transparent)',
+        'document-hover': '4px 4px 0 color-mix(in srgb, var(--color-ink) 15%, transparent)',
+        'stamp': 'inset 0 0 10px color-mix(in srgb, var(--color-stamp-red) 20%, transparent)',
       },
       animation: {
         'stamp-press': 'stamp-press 0.4s ease-out forwards',
