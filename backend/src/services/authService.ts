@@ -27,6 +27,9 @@ const defaultSettings = {
     primaryColor: '#1d4ed8',
     secondaryColor: '#f8fbff',
   },
+  writing: {
+    penStyle: 'smooth',
+  },
 };
 
 export const authService = {

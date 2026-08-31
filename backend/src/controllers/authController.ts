@@ -24,7 +24,10 @@ const updateSettingsSchema = z.object({
     presetId: z.string().min(1).max(40),
     primaryColor: hexColorSchema,
     secondaryColor: hexColorSchema,
-  }),
+  }).optional(),
+  writing: z.object({
+    penStyle: z.enum(['smooth', 'brush']),
+  }).optional(),
 });
 
 export const authController = {

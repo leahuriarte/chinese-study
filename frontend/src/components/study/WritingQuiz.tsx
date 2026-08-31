@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import HanziWriter from 'hanzi-writer';
+import { useAuth } from '../../contexts/AuthContext';
+import { getWritingSettingsFromSettings } from '../../lib/theme';
 import type { Card } from '../../types';
 import type { WritingMode } from '../../pages/Study';
 
@@ -16,7 +18,86 @@ function getThemeColor(property: string, fallback: string) {
   return value || fallback;
 }
 
+type DrawingPoint = {
+  x: number;
+  y: number;
+  pressure: number;
+};
+
+function getPointerPressure(e: React.PointerEvent<HTMLCanvasElement>) {
+  return e.pressure > 0 ? e.pressure : 0.45;
+}
+
+function interpolate(from: number, to: number, amount: number) {
+  return from + (to - from) * amount;
+}
+
+function drawBrushDab(ctx: CanvasRenderingContext2D, point: DrawingPoint, penSize: number) {
+  const width = penSize * (1.1 + point.pressure * 1.4);
+
+  ctx.save();
+  ctx.globalAlpha = 0.86;
+  ctx.beginPath();
+  ctx.ellipse(point.x, point.y, width * 0.5, width * 0.26, -Math.PI / 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawBrushStroke(
+  ctx: CanvasRenderingContext2D,
+  from: DrawingPoint,
+  to: DrawingPoint,
+  penSize: number
+) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const distance = Math.hypot(dx, dy);
+  const steps = Math.max(1, Math.ceil(distance / 2));
+  const speedTaper = Math.min(distance / 34, 1) * 0.18;
+
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  for (let step = 1; step <= steps; step += 1) {
+    const previousAmount = (step - 1) / steps;
+    const amount = step / steps;
+    const pressure = interpolate(from.pressure, to.pressure, amount);
+    const width = Math.max(2, penSize * (0.85 + pressure * 1.45) * (1 - speedTaper));
+    const startX = interpolate(from.x, to.x, previousAmount);
+    const startY = interpolate(from.y, to.y, previousAmount);
+    const endX = interpolate(from.x, to.x, amount);
+    const endY = interpolate(from.y, to.y, amount);
+
+    ctx.globalAlpha = 0.7 + pressure * 0.2;
+    ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+
+    if (step % 3 === 0) {
+      const angle = Math.atan2(dy, dx) - Math.PI / 2;
+      const offset = width * 0.18;
+
+      ctx.globalAlpha = 0.16;
+      ctx.lineWidth = Math.max(1, width * 0.2);
+      ctx.beginPath();
+      ctx.moveTo(startX + Math.cos(angle) * offset, startY + Math.sin(angle) * offset);
+      ctx.lineTo(endX + Math.cos(angle) * offset, endY + Math.sin(angle) * offset);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
 export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onComplete }: WritingQuizProps) {
+  const { user } = useAuth();
+  const writingSettings = useMemo(
+    () => getWritingSettingsFromSettings(user?.settings),
+    [user?.settings]
+  );
   const writerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [writer, setWriter] = useState<HanziWriter | null>(null);
@@ -43,7 +124,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     setStylusOnlyState(enabled);
     localStorage.setItem('freehand-stylus-only', enabled.toString());
   };
-  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const lastPointRef = useRef<DrawingPoint | null>(null);
 
   const characters = useMemo(() => Array.from(card.hanzi), [card.hanzi]);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
@@ -122,32 +203,45 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     initCanvas();
   }, [writingMode, card.hanzi, initCanvas, themeRevision]);
 
-  const startDrawing = useCallback((x: number, y: number) => {
+  const startDrawing = useCallback((x: number, y: number, pressure: number) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
     setIsDrawing(true);
     if (!isEraser) setHasDrawn(true);
-    lastPointRef.current = { x, y };
+    lastPointRef.current = { x, y, pressure };
 
     // Set up stroke style
     ctx.strokeStyle = isEraser
       ? getThemeColor('--color-paper', '#f8fbff')
       : getThemeColor('--color-stamp-red', '#1d4ed8');
+    ctx.fillStyle = ctx.strokeStyle;
     ctx.lineWidth = isEraser ? penSize * 2 : penSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
+    if (!isEraser && writingSettings.penStyle === 'brush') {
+      drawBrushDab(ctx, { x, y, pressure }, penSize);
+    }
+
     ctx.beginPath();
     ctx.moveTo(x, y);
-  }, [isEraser, penSize]);
+  }, [isEraser, penSize, writingSettings.penStyle]);
 
-  const draw = useCallback((x: number, y: number) => {
+  const draw = useCallback((x: number, y: number, pressure: number) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx || !lastPointRef.current) return;
+
+    const nextPoint = { x, y, pressure };
+
+    if (!isEraser && writingSettings.penStyle === 'brush') {
+      drawBrushStroke(ctx, lastPointRef.current, nextPoint, penSize);
+      lastPointRef.current = nextPoint;
+      return;
+    }
 
     // Use quadratic curve for smoother lines
     const midX = (lastPointRef.current.x + x) / 2;
@@ -160,8 +254,8 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     ctx.beginPath();
     ctx.moveTo(midX, midY);
 
-    lastPointRef.current = { x, y };
-  }, [isDrawing]);
+    lastPointRef.current = nextPoint;
+  }, [isDrawing, isEraser, penSize, writingSettings.penStyle]);
 
   const stopDrawing = useCallback(() => {
     setIsDrawing(false);
@@ -183,7 +277,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    startDrawing(x, y);
+    startDrawing(x, y, getPointerPressure(e));
   }, [shouldAllowInput, startDrawing]);
 
   const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -194,7 +288,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    draw(x, y);
+    draw(x, y, getPointerPressure(e));
   }, [shouldAllowInput, draw]);
 
   const handleCanvasPointerUp = useCallback(() => {

@@ -1,4 +1,4 @@
-import type { ThemeSettings, UserSettings } from '../types';
+import type { PenStyle, ThemeSettings, UserSettings, WritingSettings } from '../types';
 
 export interface ColorTheme extends ThemeSettings {
   name: string;
@@ -34,7 +34,11 @@ export const COLOR_THEMES: ColorTheme[] = [
 ];
 
 const DEFAULT_THEME = COLOR_THEMES[0];
+const DEFAULT_WRITING_SETTINGS: WritingSettings = {
+  penStyle: 'smooth',
+};
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const PEN_STYLES = new Set<PenStyle>(['smooth', 'brush']);
 
 export function getThemeFromSettings(settings?: UserSettings | null): ThemeSettings {
   const theme = settings?.theme;
@@ -48,6 +52,18 @@ export function getThemeFromSettings(settings?: UserSettings | null): ThemeSetti
   }
 
   return DEFAULT_THEME;
+}
+
+export function getWritingSettingsFromSettings(settings?: UserSettings | null): WritingSettings {
+  const penStyle = settings?.writing?.penStyle;
+
+  if (penStyle && PEN_STYLES.has(penStyle)) {
+    return {
+      penStyle,
+    };
+  }
+
+  return DEFAULT_WRITING_SETTINGS;
 }
 
 export function applyTheme(theme: ThemeSettings = DEFAULT_THEME) {

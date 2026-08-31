@@ -20,12 +20,19 @@ export interface UserSettings {
   preferredQuizModes: QuizMode[];
   showPinyinTones: 'numbers' | 'marks'; // e.g., "ma3" vs "mǎ"
   theme?: ThemeSettings;
+  writing?: WritingSettings;
 }
 
 export interface ThemeSettings {
   presetId: string;
   primaryColor: string;
   secondaryColor: string;
+}
+
+export type PenStyle = 'smooth' | 'brush';
+
+export interface WritingSettings {
+  penStyle: PenStyle;
 }
 
 export interface Card {
