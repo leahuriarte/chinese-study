@@ -76,7 +76,7 @@ const buildStudySessionPayload = (
 
 export default function Study() {
   const [mode, setMode] = useState<QuizMode>('hanzi_to_pinyin');
-  const [writingMode, setWritingMode] = useState<WritingMode>('stroke_order');
+  const [writingMode, setWritingMode] = useState<WritingMode>('freehand');
   const [sessionType, setSessionType] = useState<SessionType>('mastery');
   const [showModeSelector, setShowModeSelector] = useState(true);
   const [studySource, setStudySource] = useState<StudySource>('lesson');
@@ -676,18 +676,18 @@ export default function Study() {
 
           <div className="grid grid-cols-2 gap-4">
             <WritingModeButton
-              active={writingMode === 'stroke_order'}
-              onClick={() => setWritingMode('stroke_order')}
-              icon="笔"
-              title="Stroke Order"
-              description="Guided practice with stroke validation (still in development)"
-            />
-            <WritingModeButton
               active={writingMode === 'freehand'}
               onClick={() => setWritingMode('freehand')}
               icon="画"
               title="Freehand"
               description="Draw freely and self-assess"
+            />
+            <WritingModeButton
+              active={writingMode === 'stroke_order'}
+              onClick={() => setWritingMode('stroke_order')}
+              icon="笔"
+              title="Stroke Order"
+              description="Guided practice with stroke validation (still in development)"
             />
           </div>
         </div>
