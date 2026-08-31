@@ -22,6 +22,7 @@ app.use(cors({
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    console.warn(`CORS blocked origin: ${origin}`);
     // Return error for disallowed origins instead of silent rejection
     return callback(new Error('Not allowed by CORS'), false);
   },
