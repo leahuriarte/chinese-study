@@ -8,5 +8,9 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/stats', studyController.getStats);
+router.get('/sessions/latest', studyController.getLatestSession);
+router.post('/sessions', studyController.createSession);
+router.patch('/sessions/:id', studyController.updateSession);
+router.post('/sessions/:id/complete', studyController.completeSession);
 
 export default router;

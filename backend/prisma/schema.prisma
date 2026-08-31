@@ -123,12 +123,20 @@ model StudySession {
   id              String    @id @default(uuid())
   userId          String    @map("user_id")
   mode            String
+  sessionType     String    @default("mastery") @map("session_type")
+  writingMode     String    @default("stroke_order") @map("writing_mode")
+  studySource     String    @default("lesson") @map("study_source")
+  filters         Json      @default("{}")
+  state           Json      @default("{}")
+  status          String    @default("active")
   startedAt       DateTime  @default(now()) @map("started_at")
   endedAt         DateTime? @map("ended_at")
   cardsReviewed   Int       @default(0) @map("cards_reviewed")
   correctCount    Int       @default(0) @map("correct_count")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, status, updatedAt])
   @@map("study_sessions")
 }

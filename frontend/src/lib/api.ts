@@ -1,4 +1,4 @@
-import type { User, Card, Folder, UserSettings } from '../types';
+import type { User, Card, Folder, UserSettings, SaveStudySessionPayload, HydratedStudySession, StudySession } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -161,6 +161,31 @@ class ApiClient {
     return this.request<{
       totalCards: number;
     }>('/api/study/stats');
+  }
+
+  async getLatestStudySession() {
+    return this.request<HydratedStudySession | null>('/api/study/sessions/latest');
+  }
+
+  async createStudySession(session: SaveStudySessionPayload) {
+    return this.request<StudySession>('/api/study/sessions', {
+      method: 'POST',
+      body: JSON.stringify(session),
+    });
+  }
+
+  async updateStudySession(id: string, session: SaveStudySessionPayload) {
+    return this.request<StudySession>(`/api/study/sessions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(session),
+    });
+  }
+
+  async completeStudySession(id: string, session: SaveStudySessionPayload) {
+    return this.request<StudySession>(`/api/study/sessions/${id}/complete`, {
+      method: 'POST',
+      body: JSON.stringify(session),
+    });
   }
 
   // Folder endpoints

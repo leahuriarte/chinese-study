@@ -56,3 +56,56 @@ export interface Folder {
   updatedAt: string | Date;
   cardCount?: number;
 }
+
+export type StudySessionType = 'mastery' | 'quick';
+export type WritingMode = 'stroke_order' | 'freehand';
+export type StudySource = 'lesson' | 'folder';
+
+export interface StudySessionFilters {
+  textbookPart?: number;
+  lessonNumbers?: number[];
+  folderId?: string;
+}
+
+export interface StudySessionQueueItem {
+  cardId: string;
+  correctCount: number;
+  totalAttempts: number;
+}
+
+export interface StudySessionState {
+  queue: StudySessionQueueItem[];
+  masteredCardIds: string[];
+  completedCardIds: string[];
+  wrongCardIds: string[];
+  totalCards?: number;
+}
+
+export interface SaveStudySessionPayload {
+  mode: QuizMode;
+  sessionType: StudySessionType;
+  writingMode: WritingMode;
+  studySource: StudySource;
+  filters: StudySessionFilters;
+  state: StudySessionState;
+}
+
+export interface StudySession extends SaveStudySessionPayload {
+  id: string;
+  userId: string;
+  status: 'active' | 'completed' | string;
+  startedAt: string | Date;
+  endedAt?: string | Date | null;
+  cardsReviewed: number;
+  correctCount: number;
+  updatedAt: string | Date;
+}
+
+export interface StudySessionCard extends Card {
+  correctCount: number;
+  totalAttempts: number;
+}
+
+export interface HydratedStudySession extends StudySession {
+  queueCards: StudySessionCard[];
+}

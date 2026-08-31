@@ -1,7 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { Card, QuizMode } from '../types';
+import type {
+  Card,
+  QuizMode,
+  SaveStudySessionPayload,
+  StudySessionFilters,
+  StudySessionState,
+  StudySessionType,
+  StudySource,
+  WritingMode as StudyWritingMode,
+} from '../types';
 import WritingQuiz from '../components/study/WritingQuiz';
 import RadicalBreakdown from '../components/RadicalBreakdown';
 
@@ -15,20 +24,62 @@ const quizModes: { value: QuizMode; label: string; description: string; icon: st
   { value: 'english_to_pinyin', label: 'English → Pinyin', description: 'See meaning, type pinyin', icon: '音' },
 ];
 
-export type WritingMode = 'stroke_order' | 'freehand';
-export type SessionType = 'mastery' | 'quick';
+export type WritingMode = StudyWritingMode;
+export type SessionType = StudySessionType;
 
 interface CardWithProgress extends Card {
   correctCount: number;
   totalAttempts: number;
 }
 
+const getQuizModeLabel = (quizMode: QuizMode) => (
+  quizModes.find((item) => item.value === quizMode)?.label || quizMode
+);
+
+const getSessionTypeLabel = (type: SessionType) => (
+  type === 'mastery' ? 'Mastery' : 'Quick Review'
+);
+
+const buildStudySessionState = (
+  queue: CardWithProgress[],
+  masteredCardIds: Set<string>,
+  completedCardIds: Set<string>,
+  wrongCardIds: Set<string>,
+  totalCards: number
+): StudySessionState => ({
+  queue: queue.map(card => ({
+    cardId: card.id,
+    correctCount: card.correctCount,
+    totalAttempts: card.totalAttempts,
+  })),
+  masteredCardIds: [...masteredCardIds],
+  completedCardIds: [...completedCardIds],
+  wrongCardIds: [...wrongCardIds],
+  totalCards,
+});
+
+const buildStudySessionPayload = (
+  quizMode: QuizMode,
+  type: SessionType,
+  currentWritingMode: WritingMode,
+  source: StudySource,
+  currentFilters: StudySessionFilters,
+  state: StudySessionState
+): SaveStudySessionPayload => ({
+  mode: quizMode,
+  sessionType: type,
+  writingMode: currentWritingMode,
+  studySource: source,
+  filters: currentFilters,
+  state,
+});
+
 export default function Study() {
   const [mode, setMode] = useState<QuizMode>('hanzi_to_pinyin');
   const [writingMode, setWritingMode] = useState<WritingMode>('stroke_order');
   const [sessionType, setSessionType] = useState<SessionType>('mastery');
   const [showModeSelector, setShowModeSelector] = useState(true);
-  const [studySource, setStudySource] = useState<'lesson' | 'folder'>('lesson');
+  const [studySource, setStudySource] = useState<StudySource>('lesson');
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -46,12 +97,16 @@ export default function Study() {
   const [folderPromptName, setFolderPromptName] = useState('');
   const [folderPromptState, setFolderPromptState] = useState<'idle' | 'asking' | 'naming' | 'done'>('idle');
   const [isStartingSession, setIsStartingSession] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [sessionTotalCards, setSessionTotalCards] = useState(0);
+  const [sessionSaveError, setSessionSaveError] = useState<string | null>(null);
+  const completedSessionIdsRef = useRef<Set<string>>(new Set());
 
-  const filters = {
+  const filters = useMemo<StudySessionFilters>(() => ({
     textbookPart: studySource === 'lesson' ? (selectedPart || undefined) : undefined,
     lessonNumbers: studySource === 'lesson' && selectedLessons.length > 0 ? selectedLessons : undefined,
     folderId: studySource === 'folder' ? (selectedFolderId || undefined) : undefined,
-  };
+  }), [selectedFolderId, selectedLessons, selectedPart, studySource]);
 
   const { data: foldersData } = useQuery({
     queryKey: ['folders'],
@@ -61,6 +116,15 @@ export default function Study() {
   const { data: allCardsData, isLoading: isLoadingAll, refetch: refetchCards } = useQuery({
     queryKey: ['allCards', studySource, selectedPart, selectedLessons, selectedFolderId],
     queryFn: () => api.getCards({ ...filters, limit: 500 }),
+  });
+
+  const {
+    data: latestStudySession,
+    isLoading: isLoadingLatestStudySession,
+    refetch: refetchLatestStudySession,
+  } = useQuery({
+    queryKey: ['latestStudySession'],
+    queryFn: () => api.getLatestStudySession(),
   });
 
   const createMissedFolderMutation = useMutation({
@@ -75,7 +139,66 @@ export default function Study() {
     },
   });
 
-  const isLoading = isLoadingAll || isStartingSession;
+  const isLoading = isStartingSession || (!activeSessionId && isLoadingAll);
+
+  const sessionState = useMemo(() => buildStudySessionState(
+    cardQueue,
+    masteredCards,
+    completedCards,
+    wrongCardIds,
+    sessionTotalCards || allCardsData?.cards?.length || 0
+  ), [allCardsData?.cards?.length, cardQueue, completedCards, masteredCards, sessionTotalCards, wrongCardIds]);
+
+  const sessionPayload = useMemo(() => buildStudySessionPayload(
+    mode,
+    sessionType,
+    writingMode,
+    studySource,
+    filters,
+    sessionState
+  ), [filters, mode, sessionState, sessionType, studySource, writingMode]);
+
+  useEffect(() => {
+    if (!activeSessionId || showModeSelector || isStartingSession) {
+      return;
+    }
+
+    const hasSessionProgress = sessionPayload.state.queue.length > 0
+      || sessionPayload.state.masteredCardIds.length > 0
+      || sessionPayload.state.completedCardIds.length > 0;
+
+    if (!hasSessionProgress) {
+      return;
+    }
+
+    const isComplete = sessionPayload.state.queue.length === 0
+      && (
+        sessionPayload.state.masteredCardIds.length > 0
+        || sessionPayload.state.completedCardIds.length > 0
+      );
+    const sessionId = activeSessionId;
+
+    const timeoutId = window.setTimeout(() => {
+      const savePromise = isComplete
+        ? completedSessionIdsRef.current.has(sessionId)
+          ? Promise.resolve()
+          : api.completeStudySession(sessionId, sessionPayload).then(() => {
+            completedSessionIdsRef.current.add(sessionId);
+            setActiveSessionId(null);
+            queryClient.invalidateQueries({ queryKey: ['latestStudySession'] });
+          })
+        : api.updateStudySession(sessionId, sessionPayload);
+
+      savePromise
+        .then(() => setSessionSaveError(null))
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : 'Unable to save study session';
+          setSessionSaveError(message);
+        });
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeSessionId, isStartingSession, queryClient, sessionPayload, showModeSelector]);
 
   const getCurrentCard = useCallback((): Card | null => {
     return cardQueue[0] || null;
@@ -267,9 +390,9 @@ export default function Study() {
   const startStudying = async (selectedMode: QuizMode) => {
     setIsStartingSession(true);
     setMode(selectedMode);
-    setShowModeSelector(false);
     setAnswer('');
     setShowResult(false);
+    setAnsweredCard(null);
     setWasOverridden(false);
     setCardQueue([]);
     setMasteredCards(new Set());
@@ -277,13 +400,84 @@ export default function Study() {
     setWrongCardIds(new Set());
     setFolderPromptState('idle');
     setFolderPromptName('');
+    setActiveSessionId(null);
+    setSessionSaveError(null);
 
     try {
       const cardsData = allCardsData?.cards ? allCardsData : (await refetchCards()).data;
       const shuffled = [...(cardsData?.cards || [])]
         .sort(() => Math.random() - 0.5)
         .map(card => ({ ...card, correctCount: 0, totalAttempts: 0 }));
+      const totalCards = shuffled.length;
+      const initialState = buildStudySessionState(shuffled, new Set(), new Set(), new Set(), totalCards);
+      const session = await api.createStudySession(buildStudySessionPayload(
+        selectedMode,
+        sessionType,
+        writingMode,
+        studySource,
+        filters,
+        initialState
+      ));
+
+      setActiveSessionId(session.id);
+      setSessionTotalCards(totalCards);
       setCardQueue(shuffled);
+      setShowModeSelector(false);
+      queryClient.invalidateQueries({ queryKey: ['latestStudySession'] });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to start study session';
+      setSessionSaveError(message);
+    } finally {
+      setIsStartingSession(false);
+    }
+  };
+
+  const resumeLatestSession = async () => {
+    setIsStartingSession(true);
+    setSessionSaveError(null);
+
+    try {
+      const latest = latestStudySession || (await refetchLatestStudySession()).data;
+
+      if (!latest || latest.queueCards.length === 0) {
+        setSessionSaveError('No unfinished session is available to resume.');
+        return;
+      }
+
+      const nextSessionType = latest.sessionType;
+      const nextWritingMode = latest.writingMode;
+      const nextStudySource = latest.studySource;
+      const nextFilters = latest.filters || {};
+
+      setActiveSessionId(latest.id);
+      setMode(latest.mode);
+      setSessionType(nextSessionType);
+      setWritingMode(nextWritingMode);
+      setStudySource(nextStudySource);
+      setSelectedPart(nextStudySource === 'lesson' ? nextFilters.textbookPart ?? null : null);
+      setSelectedLessons(nextStudySource === 'lesson' ? nextFilters.lessonNumbers || [] : []);
+      setSelectedFolderId(nextStudySource === 'folder' ? nextFilters.folderId || null : null);
+      setAnswer('');
+      setShowResult(false);
+      setWasCorrect(false);
+      setAnsweredCard(null);
+      setWasOverridden(false);
+      setCardQueue(latest.queueCards);
+      setMasteredCards(new Set(latest.state.masteredCardIds));
+      setCompletedCards(new Set(latest.state.completedCardIds));
+      setWrongCardIds(new Set(latest.state.wrongCardIds));
+      setFolderPromptState('idle');
+      setFolderPromptName('');
+      setSessionTotalCards(
+        latest.state.totalCards
+        || latest.queueCards.length
+          + latest.state.masteredCardIds.length
+          + latest.state.completedCardIds.length
+      );
+      setShowModeSelector(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to resume study session';
+      setSessionSaveError(message);
     } finally {
       setIsStartingSession(false);
     }
@@ -302,16 +496,20 @@ export default function Study() {
     setFolderPromptState('idle');
     setFolderPromptName('');
     setIsStartingSession(false);
+    setActiveSessionId(null);
+    setSessionTotalCards(0);
     setStudySource('lesson');
     setSelectedFolderId(null);
+    setSelectedPart(1);
+    setSelectedLessons([]);
+    queryClient.invalidateQueries({ queryKey: ['latestStudySession'] });
   };
 
   const getProgress = () => {
+    const total = sessionTotalCards || (allCardsData?.cards?.length || 0);
     if (sessionType === 'quick') {
-      const total = (allCardsData?.cards?.length || 0);
       return { current: completedCards.size, total };
     } else {
-      const total = (allCardsData?.cards?.length || 0);
       return { current: masteredCards.size, total };
     }
   };
@@ -321,6 +519,24 @@ export default function Study() {
   const isSessionComplete = () => {
     return cardQueue.length === 0 && (masteredCards.size > 0 || completedCards.size > 0);
   };
+
+  const latestStudySessionProgress = latestStudySession
+    ? latestStudySession.sessionType === 'quick'
+      ? latestStudySession.state.completedCardIds.length
+      : latestStudySession.state.masteredCardIds.length
+    : 0;
+  const latestStudySessionTotal = latestStudySession
+    ? latestStudySession.state.totalCards
+      || latestStudySession.queueCards.length
+        + latestStudySession.state.masteredCardIds.length
+        + latestStudySession.state.completedCardIds.length
+    : 0;
+  const latestStudySessionDescription = isLoadingLatestStudySession
+    ? 'Checking for saved progress...'
+    : latestStudySession
+      ? `${getSessionTypeLabel(latestStudySession.sessionType)} • ${getQuizModeLabel(latestStudySession.mode)} • ${latestStudySessionProgress}/${latestStudySessionTotal}`
+      : 'No unfinished session yet';
+  const canResumeLatestSession = Boolean(latestStudySession && latestStudySession.queueCards.length > 0);
 
   // Mode Selector Screen
   if (showModeSelector) {
@@ -344,7 +560,7 @@ export default function Study() {
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <SessionTypeButton
               active={sessionType === 'mastery'}
               onClick={() => setSessionType('mastery')}
@@ -359,7 +575,18 @@ export default function Study() {
               title="Quick Review"
               description="Go through all cards once"
             />
+            <SessionTypeButton
+              active={false}
+              disabled={!canResumeLatestSession || isStartingSession}
+              onClick={() => void resumeLatestSession()}
+              icon="续"
+              title="Resume Latest"
+              description={latestStudySessionDescription}
+            />
           </div>
+          {sessionSaveError && (
+            <p className="text-xs text-stamp-red mt-4">{sessionSaveError}</p>
+          )}
         </div>
 
         {/* Study Source */}
@@ -658,14 +885,14 @@ export default function Study() {
               onClick={changeMode}
               className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition flex items-center gap-1"
             >
-              ← Back
+              ← Save & Exit
             </button>
             <span className="text-xs px-2 py-1 border border-stamp-red text-stamp-red tracking-wider uppercase">
               {sessionLabel}
             </span>
             {studySource === 'lesson' && (selectedPart || selectedLessons.length > 0) && (
               <span className="text-xs text-ink-light">
-                Part {selectedPart}{selectedLessons.length > 0 ? `, L${selectedLessons.sort((a, b) => a - b).join(', ')}` : ''}
+                Part {selectedPart}{selectedLessons.length > 0 ? `, L${[...selectedLessons].sort((a, b) => a - b).join(', ')}` : ''}
               </span>
             )}
             {studySource === 'folder' && selectedFolderId && (
@@ -706,6 +933,11 @@ export default function Study() {
           style={{ width: `${progress.total > 0 ? (progress.current / progress.total) * 100 : 0}%` }}
         />
       </div>
+      {sessionSaveError && (
+        <div className="border border-stamp-red bg-stamp-red-light px-4 py-3 mb-6 text-sm text-stamp-red">
+          {sessionSaveError}
+        </div>
+      )}
 
       {/* Main Card */}
       <div className="document-card p-8">
@@ -856,18 +1088,21 @@ function SessionTypeButton({
   onClick,
   icon,
   title,
-  description
+  description,
+  disabled = false,
 }: {
   active: boolean;
   onClick: () => void;
   icon: string;
   title: string;
   description: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 text-left transition-all border-2 ${
+      disabled={disabled}
+      className={`relative p-4 text-left transition-all border-2 disabled:cursor-not-allowed disabled:opacity-60 ${
         active
           ? 'bg-stamp-red border-stamp-red text-accent-contrast'
           : 'bg-paper border-border text-ink hover:border-stamp-red'
