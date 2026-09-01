@@ -1,23 +1,56 @@
 import prisma from '../db.js';
 import { integratedChineseVocab, parseICTag } from '../data/integratedChineseVocab.js';
 import { integratedChineseVocabPart2 } from '../data/integratedChineseVocabPart2.js';
+import { integratedChineseVocabPart3 } from '../data/integratedChineseVocabPart3.js';
 
-// Combined vocabulary from Part 1 and Part 2
-const allIntegratedChineseVocab = [...integratedChineseVocab, ...integratedChineseVocabPart2];
+// Combined vocabulary from all preloaded Integrated Chinese volumes.
+const allIntegratedChineseVocab = [
+  ...integratedChineseVocab,
+  ...integratedChineseVocabPart2,
+  ...integratedChineseVocabPart3,
+];
+
+const allIntegratedChineseLessonTags = [
+  ...new Set(
+    allIntegratedChineseVocab.flatMap(v => v.tags.filter(tag => /^IC\d+-L\d+$/.test(tag)))
+  ),
+];
+
+function getIntegratedChineseSeedKey(hanzi: string, tags: string[]): string {
+  const icTag = tags.find(tag => /^IC\d+-L\d+$/.test(tag));
+  return `${hanzi}|${icTag ?? 'untagged'}`;
+}
 
 /**
- * Seeds the Integrated Chinese Part 1 Level 1 & 2 vocabulary for a user.
- * This function checks if the user already has these cards to avoid duplicates.
+ * Seeds the Integrated Chinese vocabulary for a user.
+ * This function checks if the user already has the same textbook entry to avoid duplicates.
  * It also respects cards that the user has deliberately deleted.
  */
 export async function seedVocabForUser(userId: string): Promise<{ created: number; skipped: number }> {
-  // Get existing hanzi for this user to avoid duplicates
+  // Get existing textbook entries for this user to avoid duplicates.
   const existingCards = await prisma.card.findMany({
     where: { userId },
-    select: { hanzi: true },
+    select: {
+      hanzi: true,
+      tags: true,
+      textbookPart: true,
+      lessonNumber: true,
+    },
   });
 
-  const existingHanzi = new Set(existingCards.map(c => c.hanzi));
+  const existingSeedKeys = new Set(
+    existingCards.flatMap(c => {
+      const keys = c.tags
+        .filter(tag => /^IC\d+-L\d+$/.test(tag))
+        .map(tag => getIntegratedChineseSeedKey(c.hanzi, [tag]));
+
+      if (c.textbookPart && c.lessonNumber) {
+        keys.push(getIntegratedChineseSeedKey(c.hanzi, [`IC${c.textbookPart}-L${c.lessonNumber}`]));
+      }
+
+      return keys;
+    })
+  );
 
   // Get user's deleted vocab list from settings
   const user = await prisma.user.findUnique({
@@ -29,9 +62,9 @@ export async function seedVocabForUser(userId: string): Promise<{ created: numbe
   const deletedVocab: string[] = settings.deletedVocab || [];
   const deletedHanzi = new Set(deletedVocab);
 
-  // Filter out vocab that already exists OR was deliberately deleted
+  // Filter out vocab that already exists for the same textbook lesson OR was deliberately deleted.
   const newVocab = allIntegratedChineseVocab.filter(
-    v => !existingHanzi.has(v.hanzi) && !deletedHanzi.has(v.hanzi)
+    v => !existingSeedKeys.has(getIntegratedChineseSeedKey(v.hanzi, v.tags)) && !deletedHanzi.has(v.hanzi)
   );
 
   if (newVocab.length === 0) {
@@ -92,16 +125,11 @@ export async function seedVocabForAllUsers(): Promise<{ usersProcessed: number; 
  * This is for migrating cards created before these fields existed.
  */
 export async function updateExistingCardsWithPartLesson(): Promise<{ updated: number }> {
-  // Find all cards that have IC tags but no textbookPart set (Part 1 and Part 2)
+  // Find all cards that have IC tags but no textbookPart set.
   const cardsToUpdate = await prisma.card.findMany({
     where: {
       textbookPart: null,
-      tags: { hasSome: [
-        // Part 1 tags
-        'IC1-L1', 'IC1-L2', 'IC1-L3', 'IC1-L4', 'IC1-L5', 'IC1-L6', 'IC1-L7', 'IC1-L8', 'IC1-L9', 'IC1-L10',
-        // Part 2 tags
-        'IC2-L11', 'IC2-L12', 'IC2-L13', 'IC2-L14', 'IC2-L15', 'IC2-L16', 'IC2-L17', 'IC2-L18', 'IC2-L19', 'IC2-L20'
-      ] },
+      tags: { hasSome: allIntegratedChineseLessonTags },
     },
     select: { id: true, tags: true },
   });

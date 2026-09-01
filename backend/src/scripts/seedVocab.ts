@@ -8,7 +8,7 @@ import { seedVocabForAllUsers, updateExistingCardsWithPartLesson } from '../serv
 
 async function main() {
   console.log('Starting vocabulary seed for all users...');
-  console.log('Vocabulary: Integrated Chinese Part 1 Level 1 (454 items)');
+  console.log('Vocabulary: Integrated Chinese Parts 1-3');
   console.log('');
 
   try {

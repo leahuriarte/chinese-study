@@ -13,6 +13,7 @@ import type {
 } from '../types';
 import WritingQuiz from '../components/study/WritingQuiz';
 import RadicalBreakdown from '../components/RadicalBreakdown';
+import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
 
 const quizModes: { value: QuizMode; label: string; description: string; icon: string }[] = [
   { value: 'hanzi_to_pinyin', label: 'Hanzi → Pinyin', description: 'See character, type pinyin', icon: '拼' },
@@ -612,12 +613,11 @@ export default function Study() {
                 <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLessons([]); }}>
                   All Parts
                 </FilterButton>
-                <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLessons([]); }}>
-                  Part 1
-                </FilterButton>
-                <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLessons([]); }}>
-                  Part 2
-                </FilterButton>
+                {INTEGRATED_CHINESE_PARTS.map(({ part, label }) => (
+                  <FilterButton key={part} active={selectedPart === part} onClick={() => { setSelectedPart(part); setSelectedLessons([]); }}>
+                    {label}
+                  </FilterButton>
+                ))}
               </div>
 
               {selectedPart !== null && (
@@ -626,7 +626,7 @@ export default function Study() {
                   <FilterButton active={selectedLessons.length === 0} onClick={() => setSelectedLessons([])}>
                     All
                   </FilterButton>
-                  {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
+                  {getIntegratedChineseLessons(selectedPart).map((lesson) => (
                     <FilterButton
                       key={lesson}
                       active={selectedLessons.includes(lesson)}

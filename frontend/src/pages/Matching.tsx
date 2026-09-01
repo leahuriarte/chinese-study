@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card } from '../types';
+import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
 
 type TileType = 'hanzi' | 'pinyin' | 'english';
 type GamePhase = 'config' | 'playing' | 'complete';
@@ -240,12 +241,11 @@ export default function Matching() {
                 <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLessons([]); }}>
                   All Parts
                 </FilterButton>
-                <FilterButton active={selectedPart === 1} onClick={() => { setSelectedPart(1); setSelectedLessons([]); }}>
-                  Part 1
-                </FilterButton>
-                <FilterButton active={selectedPart === 2} onClick={() => { setSelectedPart(2); setSelectedLessons([]); }}>
-                  Part 2
-                </FilterButton>
+                {INTEGRATED_CHINESE_PARTS.map(({ part, label }) => (
+                  <FilterButton key={part} active={selectedPart === part} onClick={() => { setSelectedPart(part); setSelectedLessons([]); }}>
+                    {label}
+                  </FilterButton>
+                ))}
               </div>
 
               {selectedPart !== null && (
@@ -254,7 +254,7 @@ export default function Matching() {
                   <FilterButton active={selectedLessons.length === 0} onClick={() => setSelectedLessons([])}>
                     All
                   </FilterButton>
-                  {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map(n => (
+                  {getIntegratedChineseLessons(selectedPart).map(n => (
                     <FilterButton
                       key={n}
                       active={selectedLessons.includes(n)}

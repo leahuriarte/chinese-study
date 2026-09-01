@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card } from '../types';
 import RadicalBreakdown from '../components/RadicalBreakdown';
+import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
 
 export default function Cards() {
   const [isAddingCard, setIsAddingCard] = useState(false);
@@ -111,18 +112,15 @@ export default function Cards() {
             >
               All
             </FilterButton>
-            <FilterButton
-              active={selectedPart === 1}
-              onClick={() => { setSelectedPart(1); setSelectedLesson(null); }}
-            >
-              Part 1
-            </FilterButton>
-            <FilterButton
-              active={selectedPart === 2}
-              onClick={() => { setSelectedPart(2); setSelectedLesson(null); }}
-            >
-              Part 2
-            </FilterButton>
+            {INTEGRATED_CHINESE_PARTS.map(({ part, label }) => (
+              <FilterButton
+                key={part}
+                active={selectedPart === part}
+                onClick={() => { setSelectedPart(part); setSelectedLesson(null); }}
+              >
+                {label}
+              </FilterButton>
+            ))}
           </div>
 
           {selectedPart !== null && (
@@ -134,7 +132,7 @@ export default function Cards() {
               >
                 All
               </FilterButton>
-              {(selectedPart === 1 ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
+              {getIntegratedChineseLessons(selectedPart).map((lesson) => (
                 <FilterButton
                   key={lesson}
                   active={selectedLesson === lesson}
@@ -347,8 +345,9 @@ function EditCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
                 onChange={(e) => setFormData({ ...formData, textbookPart: e.target.value })}
                 className="w-full"
               >
-                <option value="1">Part 1</option>
-                <option value="2">Part 2</option>
+                {INTEGRATED_CHINESE_PARTS.map(({ part, label }) => (
+                  <option key={part} value={part.toString()}>{label}</option>
+                ))}
               </select>
             </div>
 
@@ -360,7 +359,7 @@ function EditCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
                 className="w-full"
               >
                 <option value="">None</option>
-                {(formData.textbookPart === '1' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
+                {getIntegratedChineseLessons(formData.textbookPart).map((lesson) => (
                   <option key={lesson} value={lesson.toString()}>
                     Lesson {lesson}
                   </option>
@@ -499,8 +498,9 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setFormData({ ...formData, textbookPart: e.target.value })}
                 className="w-full"
               >
-                <option value="1">Part 1</option>
-                <option value="2">Part 2</option>
+                {INTEGRATED_CHINESE_PARTS.map(({ part, label }) => (
+                  <option key={part} value={part.toString()}>{label}</option>
+                ))}
               </select>
             </div>
 
@@ -512,7 +512,7 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
                 className="w-full"
               >
                 <option value="">None</option>
-                {(formData.textbookPart === '1' ? [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] : [11, 12, 13, 14, 15, 16, 17, 18, 19, 20]).map((lesson) => (
+                {getIntegratedChineseLessons(formData.textbookPart).map((lesson) => (
                   <option key={lesson} value={lesson.toString()}>
                     Lesson {lesson}
                   </option>

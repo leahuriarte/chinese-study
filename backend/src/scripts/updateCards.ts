@@ -4,7 +4,19 @@
  */
 
 import prisma from '../db.js';
-import { parseICTag } from '../data/integratedChineseVocab.js';
+import { integratedChineseVocab, parseICTag } from '../data/integratedChineseVocab.js';
+import { integratedChineseVocabPart2 } from '../data/integratedChineseVocabPart2.js';
+import { integratedChineseVocabPart3 } from '../data/integratedChineseVocabPart3.js';
+
+const integratedChineseLessonTags = [
+  ...new Set(
+    [
+      ...integratedChineseVocab,
+      ...integratedChineseVocabPart2,
+      ...integratedChineseVocabPart3,
+    ].flatMap(v => v.tags.filter(tag => /^IC\d+-L\d+$/.test(tag)))
+  ),
+];
 
 async function main() {
   console.log('Updating existing cards with part/lesson data...');
@@ -13,7 +25,7 @@ async function main() {
   const cardsToUpdate = await prisma.card.findMany({
     where: {
       textbookPart: null,
-      tags: { hasSome: ['IC1-L1', 'IC1-L2', 'IC1-L3', 'IC1-L4', 'IC1-L5', 'IC1-L6', 'IC1-L7', 'IC1-L8', 'IC1-L9', 'IC1-L10'] },
+      tags: { hasSome: integratedChineseLessonTags },
     },
     select: { id: true, tags: true },
   });
