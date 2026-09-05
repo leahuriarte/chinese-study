@@ -12,6 +12,7 @@ import type {
   WritingMode as StudyWritingMode,
 } from '../types';
 import WritingQuiz from '../components/study/WritingQuiz';
+import HandwrittenTextAnswer from '../components/study/HandwrittenTextAnswer';
 import RadicalBreakdown from '../components/RadicalBreakdown';
 import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
 
@@ -27,6 +28,7 @@ const quizModes: { value: QuizMode; label: string; description: string; icon: st
 
 export type WritingMode = StudyWritingMode;
 export type SessionType = StudySessionType;
+type TextAnswerInputMode = 'typing' | 'writing';
 
 interface CardWithProgress extends Card {
   correctCount: number;
@@ -40,6 +42,88 @@ const getQuizModeLabel = (quizMode: QuizMode) => (
 const getSessionTypeLabel = (type: SessionType) => (
   type === 'mastery' ? 'Mastery' : 'Quick Review'
 );
+
+const pinyinAnswerModes = new Set<QuizMode>([
+  'hanzi_to_pinyin',
+  'english_to_pinyin',
+]);
+
+const hanziPromptModes = new Set<QuizMode>([
+  'hanzi_to_pinyin',
+  'hanzi_to_english',
+]);
+
+const hanziWritingModes = new Set<QuizMode>([
+  'pinyin_to_hanzi',
+  'english_to_hanzi',
+  'english_pinyin_to_hanzi',
+]);
+
+const pinyinToneMarks: Record<string, [letter: string, tone: string]> = {
+  ā: ['a', '1'],
+  á: ['a', '2'],
+  ǎ: ['a', '3'],
+  à: ['a', '4'],
+  ē: ['e', '1'],
+  é: ['e', '2'],
+  ě: ['e', '3'],
+  è: ['e', '4'],
+  ī: ['i', '1'],
+  í: ['i', '2'],
+  ǐ: ['i', '3'],
+  ì: ['i', '4'],
+  ō: ['o', '1'],
+  ó: ['o', '2'],
+  ǒ: ['o', '3'],
+  ò: ['o', '4'],
+  ū: ['u', '1'],
+  ú: ['u', '2'],
+  ǔ: ['u', '3'],
+  ù: ['u', '4'],
+  ǖ: ['v', '1'],
+  ǘ: ['v', '2'],
+  ǚ: ['v', '3'],
+  ǜ: ['v', '4'],
+};
+
+const normalizePinyinToneComparable = (value: string) => {
+  let letters = '';
+  let tones = '';
+
+  Array.from(value.toLowerCase().normalize('NFC')).forEach((char) => {
+    const toneMark = pinyinToneMarks[char];
+    if (toneMark) {
+      letters += toneMark[0];
+      tones += toneMark[1];
+      return;
+    }
+
+    if (/[1-4]/.test(char)) {
+      tones += char;
+      return;
+    }
+
+    if (char === 'ü') {
+      letters += 'v';
+      return;
+    }
+
+    if (/[a-z]/.test(char)) {
+      letters += char;
+    }
+  });
+
+  return { letters, tones };
+};
+
+const isPinyinToneEquivalent = (userAnswer: string, correctAnswer: string) => {
+  const user = normalizePinyinToneComparable(userAnswer);
+  const correct = normalizePinyinToneComparable(correctAnswer);
+
+  return user.letters.length > 0
+    && user.letters === correct.letters
+    && user.tones === correct.tones;
+};
 
 const buildStudySessionState = (
   queue: CardWithProgress[],
@@ -85,6 +169,7 @@ export default function Study() {
   const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [answer, setAnswer] = useState('');
+  const [textAnswerInputMode, setTextAnswerInputMode] = useState<TextAnswerInputMode>('typing');
   const [showResult, setShowResult] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
   const [answeredCard, setAnsweredCard] = useState<Card | null>(null);
@@ -270,8 +355,22 @@ export default function Study() {
     if (quizMode === 'hanzi_to_pinyin' || quizMode === 'english_to_pinyin') {
       const pinyinWithMarks = card.pinyinDisplay.toLowerCase().trim();
       const pinyinWithNumbers = card.pinyin.toLowerCase().trim();
+      const markedAnswer = normalizePinyinToneComparable(pinyinWithMarks);
+      const storedPinyinHasTones = /[1-5]/.test(pinyinWithNumbers);
 
-      if (normalizedUser === pinyinWithMarks || normalizedUser === pinyinWithNumbers) {
+      if (normalizedUser === pinyinWithMarks) {
+        return true;
+      }
+
+      if (storedPinyinHasTones && normalizedUser === pinyinWithNumbers) {
+        return true;
+      }
+
+      if (isPinyinToneEquivalent(normalizedUser, pinyinWithMarks)) {
+        return true;
+      }
+
+      if ((storedPinyinHasTones || markedAnswer.tones.length === 0) && isPinyinToneEquivalent(normalizedUser, pinyinWithNumbers)) {
         return true;
       }
     }
@@ -313,12 +412,22 @@ export default function Study() {
 
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitTextAnswer = (submittedAnswer: string) => {
     if (!currentCard) return;
 
     const correctAnswer = getCorrectAnswer(currentCard, mode);
-    const correct = checkAnswerSmart(answer, correctAnswer, mode, currentCard);
+    const correct = checkAnswerSmart(submittedAnswer, correctAnswer, mode, currentCard);
+    setAnswer(submittedAnswer);
+    processAnswer(correct);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitTextAnswer(answer);
+  };
+
+  const handleHandwrittenTextGrade = (correct: boolean) => {
+    setAnswer('');
     processAnswer(correct);
   };
 
@@ -392,6 +501,7 @@ export default function Study() {
     setIsStartingSession(true);
     setMode(selectedMode);
     setAnswer('');
+    setTextAnswerInputMode('typing');
     setShowResult(false);
     setAnsweredCard(null);
     setWasOverridden(false);
@@ -459,6 +569,7 @@ export default function Study() {
       setSelectedLessons(nextStudySource === 'lesson' ? nextFilters.lessonNumbers || [] : []);
       setSelectedFolderId(nextStudySource === 'folder' ? nextFilters.folderId || null : null);
       setAnswer('');
+      setTextAnswerInputMode('typing');
       setShowResult(false);
       setWasCorrect(false);
       setAnsweredCard(null);
@@ -487,6 +598,7 @@ export default function Study() {
   const changeMode = () => {
     setShowModeSelector(true);
     setAnswer('');
+    setTextAnswerInputMode('typing');
     setShowResult(false);
     setAnsweredCard(null);
     setWasOverridden(false);
@@ -942,7 +1054,7 @@ export default function Study() {
       {/* Main Card */}
       <div className="document-card p-8">
         {!showResult && currentCard ? (
-          mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' || mode === 'english_pinyin_to_hanzi' ? (
+          hanziWritingModes.has(mode) ? (
             <WritingQuiz
               key={`${currentCard.id}-${writingMode}`}
               card={currentCard}
@@ -956,10 +1068,10 @@ export default function Study() {
               {/* Prompt Display */}
               <div className="text-center mb-10">
                 <span className="field-label mb-4 inline-block">
-                  {mode.includes('hanzi') && mode.split('_')[0] !== 'english' ? 'Character' : 'Prompt'}
+                  {hanziPromptModes.has(mode) ? 'Character' : 'Prompt'}
                 </span>
                 <div className={`mt-4 ${
-                  mode.includes('hanzi') && mode.split('_')[0] !== 'english'
+                  hanziPromptModes.has(mode)
                     ? 'text-8xl font-kaiti text-stamp-red'
                     : 'text-3xl font-display text-ink'
                 }`}>
@@ -967,30 +1079,67 @@ export default function Study() {
                 </div>
               </div>
 
-              {/* Answer Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">
-                    Your Answer
-                  </label>
-                  <input
-                    type="text"
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    className="w-full text-xl"
-                    placeholder={placeholder}
-                    autoFocus
-                    required
-                  />
+              <div className="flex justify-center mb-6">
+                <div className="inline-flex border-2 border-border bg-paper">
+                  <button
+                    type="button"
+                    onClick={() => setTextAnswerInputMode('typing')}
+                    className={`px-4 py-2 text-xs tracking-wider uppercase transition ${
+                      textAnswerInputMode === 'typing'
+                        ? 'bg-stamp-red text-accent-contrast'
+                        : 'text-ink-light hover:text-stamp-red'
+                    }`}
+                  >
+                    Type
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTextAnswerInputMode('writing')}
+                    className={`px-4 py-2 text-xs tracking-wider uppercase transition border-l-2 border-border ${
+                      textAnswerInputMode === 'writing'
+                        ? 'bg-stamp-red text-accent-contrast'
+                        : 'text-ink-light hover:text-stamp-red'
+                    }`}
+                  >
+                    Write
+                  </button>
                 </div>
+              </div>
 
-                <button
-                  type="submit"
-                  className="vintage-btn vintage-btn-primary w-full"
-                >
-                  Check Answer
-                </button>
-              </form>
+              {/* Answer Form */}
+              {textAnswerInputMode === 'typing' ? (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+                      Your Answer
+                    </label>
+                    <input
+                      type="text"
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      className="w-full text-xl"
+                      placeholder={placeholder}
+                      autoFocus
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="vintage-btn vintage-btn-primary w-full"
+                  >
+                    Check Answer
+                  </button>
+                </form>
+              ) : (
+                <HandwrittenTextAnswer
+                  key={`${currentCard.id}-${mode}`}
+                  answerLanguage={pinyinAnswerModes.has(mode) ? 'pinyin' : 'english'}
+                  correctAnswer={getCorrectAnswer(currentCard, mode)}
+                  onRecognizedSubmit={submitTextAnswer}
+                  onManualGrade={handleHandwrittenTextGrade}
+                />
+              )}
             </>
           )
         ) : answeredCard ? (
@@ -1040,7 +1189,7 @@ export default function Study() {
                 </div>
               )}
 
-              {!wasCorrect && !wasOverridden && !(writingMode === 'freehand' && (mode === 'pinyin_to_hanzi' || mode === 'english_to_hanzi' || mode === 'english_pinyin_to_hanzi')) && (
+              {!wasCorrect && !wasOverridden && !(writingMode === 'freehand' && hanziWritingModes.has(mode)) && (
                 <button
                   onClick={handleOverrideCorrect}
                   className="w-full py-3 bg-cream text-ink-light border border-border hover:border-ink text-xs tracking-wider uppercase transition"
