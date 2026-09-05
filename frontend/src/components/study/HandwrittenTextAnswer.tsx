@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getStroke } from 'perfect-freehand';
+import { useAuth } from '../../contexts/AuthContext';
+import { getWritingSettingsFromSettings } from '../../lib/theme';
 import type { StrokeOptions } from 'perfect-freehand';
 
 type AnswerLanguage = 'english' | 'pinyin';
@@ -12,7 +14,13 @@ interface HandwrittenTextAnswerProps {
 }
 
 type DrawingPoint = [x: number, y: number, pressure: number, time: number];
-type CanvasStroke = DrawingPoint[];
+type CanvasStroke = {
+  kind: 'smooth' | 'brush';
+  points: DrawingPoint[];
+  size: number;
+  color: string;
+  sensitivity: number;
+};
 
 interface BrowserHandwritingPoint {
   x: number;
@@ -98,31 +106,89 @@ function paintCanvasBackground(ctx: CanvasRenderingContext2D) {
   ctx.strokeRect(0.5, 0.5, CANVAS_WIDTH - 1, CANVAS_HEIGHT - 1);
 }
 
-function drawStroke(ctx: CanvasRenderingContext2D, points: CanvasStroke, penSize: number) {
-  if (points.length === 0) return;
+function drawBrushDab(ctx: CanvasRenderingContext2D, point: DrawingPoint, penSize: number) {
+  const width = Math.max(2, penSize * (0.85 + point[2] * 1.35));
 
-  ctx.fillStyle = getThemeColor('--color-stamp-red', '#1d4ed8');
+  ctx.globalAlpha = 0.86;
+  ctx.beginPath();
+  ctx.ellipse(point[0], point[1], width * 0.5, width * 0.26, -Math.PI / 9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
 
-  if (points.length < 2) {
-    const [x, y, pressure] = points[0];
-    const width = penSize * (0.9 + pressure);
+function getAdjustedBrushPoints(points: DrawingPoint[], sensitivity: number): DrawingPoint[] {
+  const sensitivityAmount = sensitivity / 100;
+  const pressureFloor = 0.32 + sensitivityAmount * 0.06;
+  const pressureMultiplier = 0.85 + sensitivityAmount * 0.75;
+
+  return points.map(([x, y, pressure, time]) => [
+    x,
+    y,
+    Math.min(1, Math.max(pressureFloor, pressure * pressureMultiplier)),
+    time,
+  ] as DrawingPoint);
+}
+
+function drawSmoothStroke(ctx: CanvasRenderingContext2D, stroke: CanvasStroke) {
+  const [firstPoint, ...restPoints] = stroke.points;
+  if (!firstPoint) return;
+
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  ctx.lineWidth = stroke.size;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (restPoints.length === 0) {
     ctx.beginPath();
-    ctx.arc(x, y, width / 2, 0, Math.PI * 2);
+    ctx.arc(firstPoint[0], firstPoint[1], ctx.lineWidth / 2, 0, Math.PI * 2);
     ctx.fill();
     return;
   }
 
+  let lastPoint = firstPoint;
+  ctx.beginPath();
+  ctx.moveTo(firstPoint[0], firstPoint[1]);
+
+  restPoints.forEach((point) => {
+    const midX = (lastPoint[0] + point[0]) / 2;
+    const midY = (lastPoint[1] + point[1]) / 2;
+
+    ctx.quadraticCurveTo(lastPoint[0], lastPoint[1], midX, midY);
+    lastPoint = point;
+  });
+
+  ctx.lineTo(lastPoint[0], lastPoint[1]);
+  ctx.stroke();
+}
+
+function drawBrushStroke(ctx: CanvasRenderingContext2D, stroke: CanvasStroke) {
+  const points = stroke.points;
+  if (points.length === 0) return;
+
+  ctx.fillStyle = stroke.color;
+
+  if (points.length < 2) {
+    drawBrushDab(ctx, getAdjustedBrushPoints(points, stroke.sensitivity)[0], stroke.size);
+    return;
+  }
+
+  const sensitivityAmount = stroke.sensitivity / 100;
   const options: StrokeOptions = {
-    size: penSize * 2,
-    thinning: 0.48,
+    size: stroke.size * (2.25 + sensitivityAmount * 0.25),
+    thinning: 0.42 + sensitivityAmount * 0.4,
     smoothing: 0.62,
-    streamline: 0.45,
+    streamline: 0.42,
     simulatePressure: false,
     last: true,
     start: { cap: true },
     end: { cap: true },
   };
-  const outline = getStroke(points.map(([x, y, pressure]) => [x, y, pressure]), options);
+  const outline = getStroke(
+    getAdjustedBrushPoints(points, stroke.sensitivity).map(([x, y, pressure]) => [x, y, pressure]),
+    options
+  );
 
   if (outline.length < 2) return;
 
@@ -137,6 +203,15 @@ function drawStroke(ctx: CanvasRenderingContext2D, points: CanvasStroke, penSize
   ctx.globalAlpha = 1;
 }
 
+function drawStroke(ctx: CanvasRenderingContext2D, stroke: CanvasStroke) {
+  if (stroke.kind === 'brush') {
+    drawBrushStroke(ctx, stroke);
+    return;
+  }
+
+  drawSmoothStroke(ctx, stroke);
+}
+
 function buildGraphemeSet(answerLanguage: AnswerLanguage) {
   const english = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ';
   const pinyinToneMarks = 'āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüÜ';
@@ -149,6 +224,11 @@ export default function HandwrittenTextAnswer({
   onRecognizedSubmit,
   onManualGrade,
 }: HandwrittenTextAnswerProps) {
+  const { user } = useAuth();
+  const writingSettings = useMemo(
+    () => getWritingSettingsFromSettings(user?.settings),
+    [user?.settings]
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawingRef = useRef(false);
   const frameRef = useRef<number | null>(null);
@@ -183,11 +263,11 @@ export default function HandwrittenTextAnswer({
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     paintCanvasBackground(ctx);
-    completedStrokesRef.current.forEach((stroke) => drawStroke(ctx, stroke, penSize));
+    completedStrokesRef.current.forEach((stroke) => drawStroke(ctx, stroke));
     if (activeStrokeRef.current) {
-      drawStroke(ctx, activeStrokeRef.current, penSize);
+      drawStroke(ctx, activeStrokeRef.current);
     }
-  }, [penSize]);
+  }, []);
 
   useEffect(() => {
     renderCanvas();
@@ -249,7 +329,7 @@ export default function HandwrittenTextAnswer({
     frameRef.current = null;
     const points = pendingPointsRef.current.splice(0);
     if (activeStrokeRef.current) {
-      activeStrokeRef.current.push(...points);
+      activeStrokeRef.current.points.push(...points);
       renderCanvas();
     }
   }, [renderCanvas]);
@@ -276,9 +356,15 @@ export default function HandwrittenTextAnswer({
     setShowManualGrade(false);
     setRecognizedText('');
     pendingPointsRef.current = [];
-    activeStrokeRef.current = [getCanvasPoint(e.nativeEvent, canvas.getBoundingClientRect())];
+    activeStrokeRef.current = {
+      kind: writingSettings.penStyle,
+      points: [getCanvasPoint(e.nativeEvent, canvas.getBoundingClientRect())],
+      size: penSize,
+      color: getThemeColor('--color-stamp-red', '#1d4ed8'),
+      sensitivity: writingSettings.brushSensitivity,
+    };
     renderCanvas();
-  }, [renderCanvas]);
+  }, [penSize, renderCanvas, writingSettings.brushSensitivity, writingSettings.penStyle]);
 
   const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     if (!isDrawingRef.current) return;
@@ -301,7 +387,7 @@ export default function HandwrittenTextAnswer({
     }
 
     if (activeStrokeRef.current) {
-      activeStrokeRef.current.push(...pendingPointsRef.current);
+      activeStrokeRef.current.points.push(...pendingPointsRef.current);
       completedStrokesRef.current.push(activeStrokeRef.current);
       activeStrokeRef.current = null;
       pendingPointsRef.current = [];
@@ -356,8 +442,8 @@ export default function HandwrittenTextAnswer({
 
       completedStrokesRef.current.forEach((stroke) => {
         const handwritingStroke = new StrokeConstructor();
-        const startTime = stroke[0]?.[3] || Date.now();
-        stroke.forEach(([x, y, , time]) => {
+        const startTime = stroke.points[0]?.[3] || Date.now();
+        stroke.points.forEach(([x, y, , time]) => {
           handwritingStroke.addPoint({ x, y, t: Math.max(0, time - startTime) });
         });
         drawing.addStroke(handwritingStroke);
@@ -440,6 +526,9 @@ export default function HandwrittenTextAnswer({
             </button>
           ))}
         </div>
+        <span className="text-xs tracking-wider uppercase text-ink-light">
+          {writingSettings.penStyle === 'brush' ? 'Brush Pen' : 'Smooth Pen'}
+        </span>
 
         <button
           type="button"
