@@ -8,12 +8,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secret-change-in-production';
 
 export interface RegisterData {
-  email: string;
+  username: string;
   password: string;
 }
 
 export interface LoginData {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -35,11 +35,11 @@ const defaultSettings = {
 
 export const authService = {
   async register(data: RegisterData) {
-    const { email, password } = data;
+    const { username, password } = data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existingUser) {
@@ -52,13 +52,13 @@ export const authService = {
     // Create user with default settings
     const user = await prisma.user.create({
       data: {
-        email,
+        username,
         passwordHash,
         settings: defaultSettings,
       },
       select: {
         id: true,
-        email: true,
+        username: true,
         createdAt: true,
         settings: true,
       },
@@ -89,11 +89,11 @@ export const authService = {
   },
 
   async login(data: LoginData) {
-    const { email, password } = data;
+    const { username, password } = data;
 
     // Find user
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (!user) {
@@ -119,7 +119,7 @@ export const authService = {
     return {
       user: {
         id: user.id,
-        email: user.email,
+        username: user.username,
         createdAt: user.createdAt,
         settings: user.settings,
       },
@@ -133,7 +133,7 @@ export const authService = {
       where: { id: userId },
       select: {
         id: true,
-        email: true,
+        username: true,
         createdAt: true,
         settings: true,
       },
@@ -171,7 +171,7 @@ export const authService = {
       },
       select: {
         id: true,
-        email: true,
+        username: true,
         createdAt: true,
         settings: true,
       },
@@ -186,7 +186,7 @@ export const authService = {
         where: { id: decoded.userId },
         select: {
           id: true,
-          email: true,
+          username: true,
           createdAt: true,
           settings: true,
         },

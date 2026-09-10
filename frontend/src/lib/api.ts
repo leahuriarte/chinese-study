@@ -57,25 +57,25 @@ class ApiClient {
   }
 
   // Auth endpoints
-  async register(email: string, password: string) {
+  async register(username: string, password: string) {
     return this.request<{
       user: User;
       accessToken: string;
       refreshToken: string;
     }>('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
   }
 
-  async login(email: string, password: string) {
+  async login(username: string, password: string) {
     return this.request<{
       user: User;
       accessToken: string;
       refreshToken: string;
     }>('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password }),
     });
   }
 

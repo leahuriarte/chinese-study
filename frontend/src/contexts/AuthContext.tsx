@@ -6,8 +6,8 @@ import type { User, UserSettings } from '../types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<void>;
   updateSettings: (settings: Partial<UserSettings>) => Promise<User>;
   logout: () => void;
 }
@@ -42,14 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     applyTheme(getThemeFromSettings(user?.settings));
   }, [user?.settings]);
 
-  const login = async (email: string, password: string) => {
-    const response = await api.login(email, password);
+  const login = async (username: string, password: string) => {
+    const response = await api.login(username, password);
     api.setToken(response.accessToken);
     setUser(response.user);
   };
 
-  const register = async (email: string, password: string) => {
-    const response = await api.register(email, password);
+  const register = async (username: string, password: string) => {
+    const response = await api.register(username, password);
     api.setToken(response.accessToken);
     setUser(response.user);
   };

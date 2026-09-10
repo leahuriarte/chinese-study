@@ -4,12 +4,12 @@ import { z } from 'zod';
 import { AuthRequest } from '../middleware/auth.js';
 
 const registerSchema = z.object({
-  email: z.string().email(),
+  username: z.string().trim().min(1).max(100),
   password: z.string().min(6),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  username: z.string().trim().min(1),
   password: z.string(),
 });
 

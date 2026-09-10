@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Register() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register(email, password);
+      await register(username, password);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -62,14 +62,15 @@ export default function Register() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-xs tracking-wider uppercase text-ink-light mb-2">
-                Email Address
+              <label htmlFor="username" className="block text-xs tracking-wider uppercase text-ink-light mb-2">
+                Username
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                autoComplete="username"
                 className="w-full"
                 required
               />
