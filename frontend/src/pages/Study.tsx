@@ -666,21 +666,21 @@ export default function Study() {
   // Mode Selector Screen
   if (showModeSelector) {
     return (
-      <div className="max-w-5xl mx-auto px-4">
+      <div className="max-w-5xl mx-auto px-1 sm:px-4">
         {/* Header */}
-        <div className="text-center mb-12 pt-8">
+        <div className="text-center mb-8 pt-6 sm:mb-12 sm:pt-8">
           <div className="inline-block mb-4">
             <span className="field-label">Study</span>
           </div>
-          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2">
+          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2 break-words">
             Study Mode
           </h1>
           <p className="text-ink-light text-sm">Choose how you want to practice today</p>
         </div>
 
         {/* Session Type Selection */}
-        <div className="document-card p-6 mb-8">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="document-card p-4 sm:p-6 mb-8">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
             <span className="field-label">Session Type</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
@@ -715,13 +715,13 @@ export default function Study() {
         </div>
 
         {/* Study Source */}
-        <div className="document-card p-6 mb-8">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="document-card p-4 sm:p-6 mb-8">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
             <span className="field-label">Study Source</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="flex gap-3 mb-6">
+          <div className="flex flex-wrap gap-3 mb-6">
             <FilterButton active={studySource === 'lesson'} onClick={() => { setStudySource('lesson'); setSelectedFolderId(null); }}>
               By Lesson
             </FilterButton>
@@ -732,8 +732,8 @@ export default function Study() {
 
           {studySource === 'lesson' && (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
+              <div className="flex flex-wrap items-start sm:items-center gap-2">
+                <span className="w-full text-xs tracking-wider uppercase text-ink-light sm:w-auto sm:min-w-[50px]">Part:</span>
                 <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLessons([]); }}>
                   All Parts
                 </FilterButton>
@@ -745,8 +745,8 @@ export default function Study() {
               </div>
 
               {selectedPart !== null && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
+                <div className="flex flex-wrap items-start sm:items-center gap-2">
+                  <span className="w-full text-xs tracking-wider uppercase text-ink-light sm:w-auto sm:min-w-[50px]">Lesson:</span>
                   <FilterButton active={selectedLessons.length === 0} onClick={() => setSelectedLessons([])}>
                     All
                   </FilterButton>
@@ -791,14 +791,14 @@ export default function Study() {
         </div>
 
         {/* Writing Mode Selection */}
-        <div className="document-card p-6 mb-8">
-          <div className="flex items-center gap-3 mb-6">
+        <div className="document-card p-4 sm:p-6 mb-8">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
             <span className="field-label">Writing Mode</span>
             <div className="flex-1 border-t border-dashed border-border" />
             <span className="text-xs text-ink-light">For character writing practice</span>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <WritingModeButton
               active={writingMode === 'freehand'}
               onClick={() => setWritingMode('freehand')}
@@ -818,23 +818,23 @@ export default function Study() {
 
         {/* Quiz Mode Cards */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
             <span className="field-label">Select Quiz Type</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4">
             {quizModes.map((quizMode) => (
               <button
                 key={quizMode.value}
                 onClick={() => void startStudying(quizMode.value)}
                 className="group document-card p-5 text-left hover:shadow-document-hover transition-all"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 min-w-0">
                   <div className="w-12 h-12 border-2 border-stamp-red flex items-center justify-center text-stamp-red font-chinese text-xl font-bold shrink-0">
                     {quizMode.icon}
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h3 className="font-display font-bold text-ink group-hover:text-stamp-red transition-colors">
                       {quizMode.label}
                     </h3>
@@ -878,8 +878,8 @@ export default function Study() {
     };
 
     return (
-      <div className="max-w-2xl mx-auto px-4 pt-12">
-        <div className="document-card p-10 text-center">
+      <div className="max-w-2xl mx-auto px-1 sm:px-4 pt-8 sm:pt-12">
+        <div className="document-card p-5 text-center sm:p-10">
           <div className="seal-stamp mx-auto mb-8 animate-stamp-press bg-green-50 border-green-600 text-green-600">
             <span className="font-chinese">成</span>
           </div>
@@ -903,7 +903,7 @@ export default function Study() {
                     You missed <span className="font-bold text-stamp-red">{wrongCardIds.size}</span> card{wrongCardIds.size === 1 ? '' : 's'}.
                     Save them to a folder for focused review?
                   </p>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <button
                       onClick={() => {
                         setFolderPromptName(buildDefaultFolderName());
@@ -941,7 +941,7 @@ export default function Study() {
                       }
                     }}
                   />
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <button
                       onClick={() => {
                         if (folderPromptName.trim()) {
@@ -999,12 +999,12 @@ export default function Study() {
 
   // Main Study Interface
   return (
-    <div className="max-w-2xl mx-auto px-4 pt-8">
+    <div className="max-w-2xl mx-auto px-1 sm:px-4 pt-6 sm:pt-8">
       {/* Header */}
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <h1 className="display-title text-2xl md:text-3xl text-ink">{currentModeLabel}</h1>
-          <div className="flex items-center gap-3 mt-2">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
+        <div className="min-w-0">
+          <h1 className="display-title text-2xl md:text-3xl text-ink break-words">{currentModeLabel}</h1>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
             <button
               onClick={changeMode}
               className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition flex items-center gap-1"
@@ -1026,7 +1026,7 @@ export default function Study() {
             )}
           </div>
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-left sm:text-right">
           <div className="text-xs tracking-wider uppercase text-ink-light">
             {sessionType === 'mastery' ? 'Mastered' : 'Progress'}
           </div>
@@ -1064,7 +1064,7 @@ export default function Study() {
       )}
 
       {/* Main Card */}
-      <div className="document-card p-8">
+      <div className="document-card p-4 sm:p-8">
         {!showResult && currentCard ? (
           hanziWritingModes.has(mode) ? (
             <WritingQuiz
@@ -1078,14 +1078,14 @@ export default function Study() {
           ) : (
             <>
               {/* Prompt Display */}
-              <div className="text-center mb-10">
+              <div className="text-center mb-8 sm:mb-10">
                 <span className="field-label mb-4 inline-block">
                   {hanziPromptModes.has(mode) ? 'Character' : 'Prompt'}
                 </span>
                 <div className={`mt-4 ${
                   hanziPromptModes.has(mode)
-                    ? 'text-8xl font-kaiti text-stamp-red'
-                    : 'text-3xl font-display text-ink'
+                    ? 'text-6xl sm:text-8xl font-kaiti text-stamp-red break-words'
+                    : 'text-2xl sm:text-3xl font-display text-ink break-words'
                 }`}>
                   {prompt}
                 </div>
@@ -1181,22 +1181,22 @@ export default function Study() {
             <div className="space-y-4 mb-8">
               <div className="py-6 bg-cream border border-border px-6">
                 <div className="text-center">
-                  <div className="text-6xl font-kaiti text-stamp-red mb-3">{getDisplayHanzi(answeredCard, characterSet)}</div>
-                  <div className="text-xl text-ink-light mb-1">{answeredCard.pinyinDisplay}</div>
-                  <div className="text-ink">{answeredCard.english}</div>
+                  <div className="text-5xl sm:text-6xl font-kaiti text-stamp-red mb-3 break-words">{getDisplayHanzi(answeredCard, characterSet)}</div>
+                  <div className="text-lg sm:text-xl text-ink-light mb-1 break-words">{answeredCard.pinyinDisplay}</div>
+                  <div className="text-ink break-words">{answeredCard.english}</div>
                 </div>
                 <RadicalBreakdown hanzi={answeredCard.hanzi} />
               </div>
 
               {!wasCorrect && answer && (
                 <div className="p-4 bg-stamp-red-light border border-stamp-red">
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between sm:items-center">
                     <span className="text-stamp-red-dark">Your answer:</span>
-                    <span className="font-medium text-stamp-red">{answer}</span>
+                    <span className="font-medium text-stamp-red break-words">{answer}</span>
                   </div>
-                  <div className="flex justify-between items-center mt-2 text-sm">
+                  <div className="flex flex-col gap-1 mt-2 text-sm sm:flex-row sm:justify-between sm:items-center">
                     <span className="text-green-700">Correct answer:</span>
-                    <span className="font-medium text-green-700">{getCorrectAnswer(answeredCard, mode)}</span>
+                    <span className="font-medium text-green-700 break-words">{getCorrectAnswer(answeredCard, mode)}</span>
                   </div>
                 </div>
               )}
@@ -1219,7 +1219,7 @@ export default function Study() {
               {answeredCard.exampleSentence && (
                 <div className="p-4 bg-cream border border-border">
                   <p className="text-xs tracking-wider uppercase text-ink-light mb-2">Example Sentence:</p>
-                  <p className="text-lg font-chinese">{answeredCard.exampleSentence}</p>
+                  <p className="text-lg font-chinese break-words">{answeredCard.exampleSentence}</p>
                   {answeredCard.examplePinyin && (
                     <p className="text-ink-light mt-1">{answeredCard.examplePinyin}</p>
                   )}
@@ -1263,7 +1263,7 @@ function SessionTypeButton({
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`relative p-4 text-left transition-all border-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`relative min-w-0 p-4 text-left transition-all border-2 disabled:cursor-not-allowed disabled:opacity-60 ${
         active
           ? 'bg-stamp-red border-stamp-red text-accent-contrast'
           : 'bg-paper border-border text-ink hover:border-stamp-red'
@@ -1275,7 +1275,7 @@ function SessionTypeButton({
         </div>
       )}
       <div className={`text-2xl font-chinese mb-2 ${active ? 'text-accent-contrast' : 'text-stamp-red'}`}>{icon}</div>
-      <div className={`font-display font-semibold ${active ? 'text-accent-contrast' : 'text-ink'}`}>{title}</div>
+      <div className={`font-display font-semibold break-words ${active ? 'text-accent-contrast' : 'text-ink'}`}>{title}</div>
       <div className={`text-xs mt-1 ${active ? 'text-accent-contrast' : 'text-ink-light'}`}>
         {description}
       </div>
@@ -1299,7 +1299,7 @@ function WritingModeButton({
   return (
     <button
       onClick={onClick}
-      className={`relative p-4 text-left transition-all border-2 ${
+      className={`relative min-w-0 p-4 text-left transition-all border-2 ${
         active
           ? 'bg-stamp-red border-stamp-red text-accent-contrast'
           : 'bg-paper border-border text-ink hover:border-stamp-red'
@@ -1311,7 +1311,7 @@ function WritingModeButton({
         </div>
       )}
       <div className={`text-2xl font-chinese mb-2 ${active ? 'text-accent-contrast' : 'text-stamp-red'}`}>{icon}</div>
-      <div className={`font-display font-semibold ${active ? 'text-accent-contrast' : 'text-ink'}`}>{title}</div>
+      <div className={`font-display font-semibold break-words ${active ? 'text-accent-contrast' : 'text-ink'}`}>{title}</div>
       <div className={`text-xs mt-1 ${active ? 'text-accent-contrast' : 'text-ink-light'}`}>
         {description}
       </div>
@@ -1331,7 +1331,7 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
+      className={`min-w-0 px-3 sm:px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium break-words ${
         active
           ? 'bg-stamp-red text-accent-contrast border-stamp-red'
           : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'

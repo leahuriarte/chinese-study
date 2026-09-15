@@ -38,7 +38,13 @@ function getPointerPressure(e: PointerEvent) {
 }
 
 function getCanvasPoint(e: PointerEvent, rect: DOMRect): DrawingPoint {
-  return [e.clientX - rect.left, e.clientY - rect.top, getPointerPressure(e)];
+  const scaleX = 300 / rect.width;
+  const scaleY = 300 / rect.height;
+  return [
+    (e.clientX - rect.left) * scaleX,
+    (e.clientY - rect.top) * scaleY,
+    getPointerPressure(e),
+  ];
 }
 
 function getCoalescedPointerEvents(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -547,7 +553,7 @@ export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMod
           </button>
         </div>
 
-        <div className="flex gap-6 items-start">
+        <div className="flex w-full flex-col gap-6 items-center md:flex-row md:items-start md:justify-center">
           <div className="flex flex-col items-center">
             <canvas
               ref={canvasRef}
@@ -555,8 +561,9 @@ export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMod
               height={300}
               className={`writing-surface touch-none ${isEraser ? 'cursor-cell' : 'cursor-crosshair'}`}
               style={{
-                width: 300,
-                height: 300,
+                width: 'min(300px, 100%)',
+                aspectRatio: '1 / 1',
+                height: 'auto',
                 userSelect: 'none',
                 WebkitUserSelect: 'none',
                 WebkitTouchCallout: 'none',
@@ -575,7 +582,12 @@ export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMod
             <div className="flex flex-col items-center">
               <div
                 className="writing-surface flex items-center justify-center overflow-hidden select-none"
-                style={{ width: 300, height: 300, WebkitUserSelect: 'none', WebkitTouchCallout: 'none' }}
+                style={{
+                  width: 'min(300px, 100%)',
+                  aspectRatio: '1 / 1',
+                  WebkitUserSelect: 'none',
+                  WebkitTouchCallout: 'none',
+                }}
               >
                 <span
                   className="leading-none font-chinese text-stamp-red"
@@ -685,7 +697,7 @@ export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMod
       <div
         ref={writerRef}
         className="writing-surface mb-6"
-        style={{ width: 300, height: 300 }}
+        style={{ width: 'min(300px, 100%)', aspectRatio: '1 / 1' }}
       />
 
       <div className="flex flex-col gap-3 w-full max-w-xs">

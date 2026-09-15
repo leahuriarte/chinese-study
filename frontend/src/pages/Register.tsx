@@ -38,14 +38,14 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-3 sm:px-4 py-8">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="seal-stamp mx-auto mb-6 animate-stamp-press">
             <span className="font-chinese">新</span>
           </div>
-          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2">
+          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2 break-words">
             Create Account
           </h1>
           <p className="text-ink-light text-sm tracking-widest uppercase">
@@ -54,8 +54,8 @@ export default function Register() {
         </div>
 
         {/* Register Form */}
-        <div className="document-card p-8">
-          <div className="flex items-center gap-3 mb-8">
+        <div className="document-card p-4 sm:p-8">
+          <div className="flex flex-wrap items-center gap-3 mb-8">
             <span className="field-label">Register</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
@@ -130,7 +130,7 @@ export default function Register() {
         </div>
 
         {/* Footer decoration */}
-        <div className="flex items-center justify-center gap-4 py-8 text-border">
+        <div className="flex flex-wrap items-center justify-center gap-4 py-8 text-border text-center">
           <div className="w-8 h-px bg-border" />
           <span className="text-xs tracking-[0.3em] uppercase">Est. 2026</span>
           <div className="w-8 h-px bg-border" />

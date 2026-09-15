@@ -70,26 +70,26 @@ export default function Cards() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4">
+    <div className="max-w-6xl mx-auto px-1 sm:px-4">
       {/* Header */}
-      <div className="flex justify-between items-start mb-10 pt-8">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-8 pt-6 sm:mb-10 sm:pt-8">
+        <div className="min-w-0">
           <div className="inline-block mb-4">
             <span className="field-label">Collection</span>
           </div>
-          <h1 className="display-title text-4xl md:text-5xl text-ink">My Cards</h1>
+          <h1 className="display-title text-4xl md:text-5xl text-ink break-words">My Cards</h1>
         </div>
         <button
           onClick={() => setIsAddingCard(true)}
-          className="vintage-btn vintage-btn-primary"
+          className="vintage-btn vintage-btn-primary w-full sm:w-auto"
         >
           + Add Card
         </button>
       </div>
 
       {/* Filters */}
-      <div className="document-card p-6 mb-8">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="document-card p-4 sm:p-6 mb-8">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
           <span className="field-label">Filters</span>
           <div className="flex-1 border-t border-dashed border-border" />
         </div>
@@ -108,8 +108,8 @@ export default function Cards() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
+          <div className="flex flex-wrap items-start sm:items-center gap-2">
+            <span className="w-full text-xs tracking-wider uppercase text-ink-light sm:w-auto sm:min-w-[50px]">Part:</span>
             <FilterButton
               active={selectedPart === null}
               onClick={() => { setSelectedPart(null); setSelectedLesson(null); }}
@@ -128,8 +128,8 @@ export default function Cards() {
           </div>
 
           {selectedPart !== null && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
+            <div className="flex flex-wrap items-start sm:items-center gap-2">
+              <span className="w-full text-xs tracking-wider uppercase text-ink-light sm:w-auto sm:min-w-[50px]">Lesson:</span>
               <FilterButton
                 active={selectedLesson === null}
                 onClick={() => setSelectedLesson(null)}
@@ -162,21 +162,21 @@ export default function Cards() {
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-6">
             <span className="text-xs tracking-wider uppercase text-ink-light">
               {data?.cards.length || 0} cards found
             </span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4">
             {data?.cards.map((card) => {
               const displayHanzi = getDisplayHanzi(card, characterSet);
 
               return (
-                <div key={card.id} className="document-card p-6 group hover:shadow-document-hover transition-all">
+                <div key={card.id} className="document-card p-4 sm:p-6 group hover:shadow-document-hover transition-all">
                   {/* Card Header */}
-                  <div className="flex justify-between items-start mb-4">
+                  <div className="flex flex-wrap justify-between items-start gap-2 mb-4">
                     <span className="field-label">Card</span>
                     {card.lessonNumber && (
                       <span className="text-xs tracking-wider uppercase px-2 py-1 border border-stamp-red text-stamp-red">
@@ -188,9 +188,9 @@ export default function Cards() {
                   {/* Hanzi */}
                   <div className="py-4">
                     <div className="text-center">
-                      <div className="text-5xl font-chinese text-stamp-red mb-3">{displayHanzi}</div>
-                      <div className="text-lg text-ink-light mb-1">{card.pinyinDisplay}</div>
-                      <div className="text-sm text-ink">{card.english}</div>
+                      <div className="text-4xl sm:text-5xl font-chinese text-stamp-red mb-3 break-words">{displayHanzi}</div>
+                      <div className="text-base sm:text-lg text-ink-light mb-1 break-words">{card.pinyinDisplay}</div>
+                      <div className="text-sm text-ink break-words">{card.english}</div>
                     </div>
                     <RadicalBreakdown hanzi={card.hanzi} />
                   </div>
@@ -207,7 +207,7 @@ export default function Cards() {
                   )}
 
                   {/* Actions */}
-                  <div className="pt-4 border-t border-dashed border-border flex gap-4">
+                  <div className="pt-4 border-t border-dashed border-border flex flex-wrap gap-4">
                     <button
                       onClick={() => setEditingCard(card)}
                       className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
@@ -246,7 +246,7 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
+      className={`min-w-0 px-3 sm:px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium break-words ${
         active
           ? 'bg-stamp-red text-accent-contrast border-stamp-red'
           : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
@@ -292,8 +292,8 @@ function EditCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-ink/50 flex items-center justify-center p-4 z-50">
-      <div className="document-card p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="document-card p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex flex-wrap items-center gap-3 mb-8">
           <span className="field-label">Edit Card</span>
           <div className="flex-1 border-t border-dashed border-border" />
         </div>
@@ -345,7 +345,7 @@ function EditCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Part</label>
               <select
@@ -387,7 +387,7 @@ function EditCardModal({ card, onClose }: { card: Card; onClose: () => void }) {
             />
           </div>
 
-          <div className="flex gap-4 pt-6 border-t border-dashed border-border">
+          <div className="flex flex-col gap-3 pt-6 border-t border-dashed border-border sm:flex-row sm:gap-4">
             <button
               type="button"
               onClick={onClose}
@@ -445,8 +445,8 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 bg-ink/50 flex items-center justify-center p-4 z-50">
-      <div className="document-card p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="document-card p-4 sm:p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex flex-wrap items-center gap-3 mb-8">
           <span className="field-label">New Card</span>
           <div className="flex-1 border-t border-dashed border-border" />
         </div>
@@ -498,7 +498,7 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Part</label>
               <select
@@ -540,7 +540,7 @@ function AddCardModal({ onClose }: { onClose: () => void }) {
             />
           </div>
 
-          <div className="flex gap-4 pt-6 border-t border-dashed border-border">
+          <div className="flex flex-col gap-3 pt-6 border-t border-dashed border-border sm:flex-row sm:gap-4">
             <button
               type="button"
               onClick={onClose}

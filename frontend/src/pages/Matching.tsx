@@ -164,30 +164,30 @@ export default function Matching() {
 
   if (phase === 'config') {
     return (
-      <div className="max-w-3xl mx-auto px-4">
-        <div className="text-center mb-10 pt-8">
+      <div className="max-w-3xl mx-auto px-1 sm:px-4">
+        <div className="text-center mb-8 pt-6 sm:mb-10 sm:pt-8">
           <div className="inline-block mb-4">
             <span className="field-label">Game</span>
           </div>
-          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2">Matching</h1>
+          <h1 className="display-title text-4xl md:text-5xl text-ink mb-2 break-words">Matching</h1>
           <p className="text-ink-light text-sm">Match each card to its pair as fast as you can</p>
         </div>
 
         {/* Match Types */}
-        <div className="document-card p-6 mb-6">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="document-card p-4 sm:p-6 mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <span className="field-label">Match Types</span>
             <div className="flex-1 border-t border-dashed border-border" />
             <span className="text-xs text-ink-light">pick 2 of 3</span>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {TILE_TYPE_META.map(({ value, label, icon, description }) => {
               const isSelected = selectedTypes.includes(value);
               return (
                 <button
                   key={value}
                   onClick={() => selectType(value)}
-                  className={`p-4 border-2 text-center transition-all ${
+                  className={`min-w-0 p-4 border-2 text-center transition-all ${
                     isSelected
                       ? 'bg-stamp-red text-accent-contrast border-stamp-red'
                       : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'
@@ -217,13 +217,13 @@ export default function Matching() {
         </div>
 
         {/* Study Source */}
-        <div className="document-card p-6 mb-6">
-          <div className="flex items-center gap-3 mb-5">
+        <div className="document-card p-4 sm:p-6 mb-6">
+          <div className="flex flex-wrap items-center gap-3 mb-5">
             <span className="field-label">Card Source</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="flex gap-3 mb-5">
+          <div className="flex flex-wrap gap-3 mb-5">
             <FilterButton
               active={studySource === 'lesson'}
               onClick={() => { setStudySource('lesson'); setSelectedFolderId(null); }}
@@ -240,8 +240,8 @@ export default function Matching() {
 
           {studySource === 'lesson' && (
             <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Part:</span>
+              <div className="flex flex-wrap items-start sm:items-center gap-2">
+                <span className="w-full text-xs tracking-wider uppercase text-ink-light sm:w-auto sm:min-w-[50px]">Part:</span>
                 <FilterButton active={selectedPart === null} onClick={() => { setSelectedPart(null); setSelectedLessons([]); }}>
                   All Parts
                 </FilterButton>
@@ -253,8 +253,8 @@ export default function Matching() {
               </div>
 
               {selectedPart !== null && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs tracking-wider uppercase text-ink-light min-w-[50px]">Lesson:</span>
+                <div className="flex flex-wrap items-start sm:items-center gap-2">
+                  <span className="w-full text-xs tracking-wider uppercase text-ink-light sm:w-auto sm:min-w-[50px]">Lesson:</span>
                   <FilterButton active={selectedLessons.length === 0} onClick={() => setSelectedLessons([])}>
                     All
                   </FilterButton>
@@ -299,7 +299,7 @@ export default function Matching() {
         </div>
 
         {/* Start */}
-        <div className="document-card p-6 text-center">
+        <div className="document-card p-4 text-center sm:p-6">
           {isLoading ? (
             <p className="text-ink-light text-sm">Loading cards...</p>
           ) : cards.length === 0 ? (
@@ -311,7 +311,7 @@ export default function Matching() {
                   ? `${cards.length} cards available — playing with ${MAX_PAIRS} random pairs`
                   : `${cards.length} card${cards.length === 1 ? '' : 's'} — ${cards.length} pair${cards.length === 1 ? '' : 's'}`}
               </p>
-              <button onClick={startGame} className="vintage-btn vintage-btn-primary px-10 py-3 text-sm tracking-widest uppercase">
+              <button onClick={startGame} className="vintage-btn vintage-btn-primary w-full px-6 py-3 text-sm tracking-widest uppercase sm:w-auto sm:px-10">
                 Start Game
               </button>
             </>
@@ -324,30 +324,30 @@ export default function Matching() {
   if (phase === 'complete') {
     const totalPairs = tiles.length / 2;
     return (
-      <div className="max-w-md mx-auto px-4 text-center pt-16">
+      <div className="max-w-md mx-auto px-1 sm:px-4 text-center pt-10 sm:pt-16">
         <div className="seal-stamp w-20 h-20 text-3xl mb-6 mx-auto animate-stamp-press">
           <span className="font-chinese">完</span>
         </div>
         <h2 className="display-title text-3xl text-ink mb-2">Complete!</h2>
         <p className="text-ink-light text-sm mb-8">All {totalPairs} pairs matched</p>
 
-        <div className="document-card p-8 mb-8">
-          <div className="text-5xl font-mono font-bold text-stamp-red mb-2">
+        <div className="document-card p-5 sm:p-8 mb-8">
+          <div className="text-4xl sm:text-5xl font-mono font-bold text-stamp-red mb-2 break-words">
             {formatTime(elapsed)}
           </div>
           <p className="text-xs tracking-widest uppercase text-ink-light">Final time</p>
         </div>
 
-        <div className="flex gap-3 justify-center">
+        <div className="flex flex-col gap-3 justify-center sm:flex-row">
           <button
             onClick={startGame}
-            className="vintage-btn vintage-btn-primary px-8 py-3 text-sm tracking-widest uppercase"
+            className="vintage-btn vintage-btn-primary px-6 sm:px-8 py-3 text-sm tracking-widest uppercase"
           >
             Play Again
           </button>
           <button
             onClick={resetToConfig}
-            className="vintage-btn px-8 py-3 text-sm tracking-widest uppercase border-ink text-ink hover:bg-ink hover:text-paper"
+            className="vintage-btn px-6 sm:px-8 py-3 text-sm tracking-widest uppercase border-ink text-ink hover:bg-ink hover:text-paper"
           >
             Change Settings
           </button>
@@ -361,32 +361,32 @@ export default function Matching() {
   const remaining = totalPairs - matchedCardIds.size;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 pb-12">
+    <div className="max-w-6xl mx-auto px-1 sm:px-4 pb-12">
       {/* HUD */}
-      <div className="flex items-center justify-between py-4 mb-6 border-b border-border">
+      <div className="flex flex-col gap-4 py-4 mb-6 border-b border-border md:flex-row md:items-center md:justify-between">
         <button
           onClick={resetToConfig}
           className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
         >
           ← Back
         </button>
-        <div className="flex items-center gap-6">
+        <div className="grid w-full grid-cols-3 gap-3 md:w-auto md:flex md:items-center md:gap-6">
           <div className="text-center">
             <div className="text-xs tracking-widest uppercase text-ink-light">Time</div>
             <div className="font-mono text-lg text-ink">{formatTime(elapsed)}</div>
           </div>
-          <div className="w-px h-8 bg-border" />
+          <div className="hidden md:block w-px h-8 bg-border" />
           <div className="text-center">
             <div className="text-xs tracking-widest uppercase text-ink-light">Remaining</div>
             <div className="font-mono text-lg text-ink">{remaining} / {totalPairs}</div>
           </div>
-          <div className="w-px h-8 bg-border" />
+          <div className="hidden md:block w-px h-8 bg-border" />
           <div className="text-center">
             <div className="text-xs tracking-widest uppercase text-ink-light">Matched</div>
             <div className="font-mono text-lg text-stamp-red">{matchedCardIds.size}</div>
           </div>
         </div>
-        <div className="w-20" />
+        <div className="hidden md:block w-20" />
       </div>
 
       {/* Progress bar */}
@@ -398,13 +398,13 @@ export default function Matching() {
       </div>
 
       {/* Tile Grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2">
         {tiles.map(tile => {
           const isMatched = matchedCardIds.has(tile.cardId);
           const isSelected = selectedTileId === tile.id;
           const isWrong = wrongPair?.includes(tile.id) ?? false;
 
-          let tileClass = 'border-2 p-2 flex items-center justify-center text-center cursor-pointer transition-all select-none min-h-[64px] ';
+          let tileClass = 'border-2 p-2 flex items-center justify-center text-center cursor-pointer transition-all select-none min-h-[72px] min-w-0 overflow-hidden ';
           if (isMatched) {
             tileClass += 'bg-green-50 border-green-400 opacity-40 cursor-default pointer-events-none';
           } else if (isWrong) {
@@ -424,10 +424,10 @@ export default function Matching() {
             >
               <span className={
                 tile.type === 'hanzi'
-                  ? 'font-chinese text-xl leading-tight'
+                  ? 'font-chinese text-xl leading-tight break-words'
                   : tile.type === 'pinyin'
-                  ? 'text-sm leading-snug'
-                  : 'text-xs leading-snug'
+                  ? 'text-sm leading-snug break-words'
+                  : 'text-xs leading-snug break-words'
               }>
                 {tile.content}
               </span>
@@ -451,7 +451,7 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium ${
+      className={`min-w-0 px-3 sm:px-4 py-2 text-xs tracking-wider uppercase transition-all border-2 font-medium break-words ${
         active
           ? 'bg-stamp-red text-accent-contrast border-stamp-red'
           : 'bg-paper text-ink-light border-border hover:border-stamp-red hover:text-stamp-red'

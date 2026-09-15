@@ -136,10 +136,10 @@ export default function Folders() {
   // Drill-down view for a selected folder
   if (selectedFolder) {
     return (
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-1 sm:px-4">
         {/* Header */}
-        <div className="flex justify-between items-start mb-10 pt-8">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-8 pt-6 sm:mb-10 sm:pt-8">
+          <div className="min-w-0">
             <button
               onClick={() => setSelectedFolder(null)}
               className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition flex items-center gap-1 mb-4"
@@ -149,14 +149,14 @@ export default function Folders() {
             <div className="inline-block mb-2">
               <span className="field-label">Folder</span>
             </div>
-            <h1 className="display-title text-4xl md:text-5xl text-ink">{selectedFolder.name}</h1>
+            <h1 className="display-title text-4xl md:text-5xl text-ink break-words">{selectedFolder.name}</h1>
             {selectedFolder.description && (
-              <p className="text-ink-light text-sm mt-2">{selectedFolder.description}</p>
+              <p className="text-ink-light text-sm mt-2 break-words">{selectedFolder.description}</p>
             )}
           </div>
           <button
             onClick={() => setShowAddCards(true)}
-            className="vintage-btn vintage-btn-primary"
+            className="vintage-btn vintage-btn-primary w-full sm:w-auto"
           >
             + Add Cards
           </button>
@@ -173,12 +173,12 @@ export default function Folders() {
         ) : (
           <div className="space-y-2">
             {folderCards.map((card: Card) => (
-              <div key={card.id} className="document-card p-4 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-6 min-w-0">
+              <div key={card.id} className="document-card p-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-4 sm:gap-6">
                   <span className="text-3xl font-kaiti text-stamp-red shrink-0">{getDisplayHanzi(card, characterSet)}</span>
                   <div className="min-w-0">
-                    <div className="text-sm text-ink-light">{card.pinyinDisplay}</div>
-                    <div className="text-sm text-ink truncate">{card.english}</div>
+                    <div className="text-sm text-ink-light break-words">{card.pinyinDisplay}</div>
+                    <div className="text-sm text-ink break-words">{card.english}</div>
                   </div>
                 </div>
                 <button
@@ -197,8 +197,8 @@ export default function Folders() {
         {showAddCards && (
           <div className="fixed inset-0 bg-ink/50 flex items-center justify-center z-50 p-4">
             <div className="bg-paper border-2 border-ink max-w-lg w-full max-h-[80vh] flex flex-col">
-              <div className="p-6 border-b border-border flex justify-between items-center">
-                <h2 className="font-display font-bold text-xl text-ink">Add Cards to Folder</h2>
+              <div className="p-4 sm:p-6 border-b border-border flex items-start justify-between gap-4">
+                <h2 className="font-display font-bold text-xl text-ink break-words">Add Cards to Folder</h2>
                 <button
                   onClick={() => { setShowAddCards(false); setSelectedCardIds(new Set()); setCardSearch(''); }}
                   className="text-ink-light hover:text-stamp-red transition"
@@ -223,7 +223,7 @@ export default function Folders() {
                     <button
                       key={card.id}
                       onClick={() => toggleCardSelection(card.id)}
-                      className={`w-full text-left p-3 border-2 transition-all flex items-center gap-4 ${
+                      className={`w-full text-left p-3 border-2 transition-all flex items-center gap-4 min-w-0 ${
                         selectedCardIds.has(card.id)
                           ? 'border-stamp-red bg-stamp-red-light'
                           : 'border-border hover:border-stamp-red'
@@ -231,8 +231,8 @@ export default function Folders() {
                     >
                       <span className="text-2xl font-kaiti text-stamp-red shrink-0">{getDisplayHanzi(card, characterSet)}</span>
                       <div className="min-w-0">
-                        <div className="text-xs text-ink-light">{card.pinyinDisplay}</div>
-                        <div className="text-sm text-ink truncate">{card.english}</div>
+                        <div className="text-xs text-ink-light break-words">{card.pinyinDisplay}</div>
+                        <div className="text-sm text-ink break-words">{card.english}</div>
                       </div>
                       {selectedCardIds.has(card.id) && (
                         <span className="ml-auto text-stamp-red text-xs font-bold shrink-0">✓</span>
@@ -241,7 +241,7 @@ export default function Folders() {
                   ))
                 )}
               </div>
-              <div className="p-4 border-t border-border flex justify-between items-center">
+              <div className="p-4 border-t border-border flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
                 <span className="text-xs text-ink-light">{selectedCardIds.size} selected</span>
                 <button
                   onClick={handleAddCards}
@@ -260,18 +260,18 @@ export default function Folders() {
 
   // Folder list view
   return (
-    <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-1 sm:px-4">
       {/* Header */}
-      <div className="flex justify-between items-start mb-10 pt-8">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start mb-8 pt-6 sm:mb-10 sm:pt-8">
+        <div className="min-w-0">
           <div className="inline-block mb-4">
             <span className="field-label">Organization</span>
           </div>
-          <h1 className="display-title text-4xl md:text-5xl text-ink">Folders</h1>
+          <h1 className="display-title text-4xl md:text-5xl text-ink break-words">Folders</h1>
         </div>
         <button
           onClick={() => setIsCreating(true)}
-          className="vintage-btn vintage-btn-primary"
+          className="vintage-btn vintage-btn-primary w-full sm:w-auto"
         >
           + New Folder
         </button>
@@ -279,7 +279,7 @@ export default function Folders() {
 
       {/* Create folder form */}
       {isCreating && (
-        <div className="document-card p-6 mb-6">
+        <div className="document-card p-4 sm:p-6 mb-6">
           <form onSubmit={handleCreateFolder} className="space-y-4">
             <div>
               <label className="block text-xs tracking-wider uppercase text-ink-light mb-2">Folder Name</label>
@@ -303,7 +303,7 @@ export default function Folders() {
                 className="w-full"
               />
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <button type="submit" disabled={createMutation.isPending} className="vintage-btn vintage-btn-primary">
                 Create
               </button>
@@ -323,7 +323,7 @@ export default function Folders() {
       {isLoading ? (
         <div className="text-ink-light text-sm tracking-widest uppercase text-center py-16">Loading...</div>
       ) : folders.length === 0 && !isCreating ? (
-        <div className="document-card p-12 text-center">
+        <div className="document-card p-6 text-center sm:p-12">
           <div className="text-4xl font-chinese text-stamp-red mb-4">文</div>
           <p className="text-ink-light mb-6">No folders yet. Create one to organize your vocabulary cards.</p>
           <button onClick={() => setIsCreating(true)} className="vintage-btn vintage-btn-primary">
@@ -368,26 +368,26 @@ export default function Folders() {
             return (
               <div
                 key={folder.id}
-                className="document-card p-5 flex items-center justify-between gap-4 hover:shadow-document-hover transition-all cursor-pointer group"
+                className="document-card p-4 sm:p-5 flex flex-col gap-4 hover:shadow-document-hover transition-all cursor-pointer group sm:flex-row sm:items-center sm:justify-between"
                 onClick={() => setSelectedFolder(folder)}
               >
-                <div className="flex items-center gap-5 min-w-0">
+                <div className="flex min-w-0 items-center gap-4 sm:gap-5">
                   <div className="w-12 h-12 border-2 border-stamp-red flex items-center justify-center text-stamp-red font-chinese text-xl shrink-0">
                     文
                   </div>
                   <div className="min-w-0">
-                    <div className="font-display font-bold text-ink group-hover:text-stamp-red transition-colors">
+                    <div className="font-display font-bold text-ink group-hover:text-stamp-red transition-colors break-words">
                       {folder.name}
                     </div>
                     {folder.description && (
-                      <div className="text-xs text-ink-light truncate mt-0.5">{folder.description}</div>
+                      <div className="text-xs text-ink-light break-words mt-0.5">{folder.description}</div>
                     )}
                     <div className="text-xs text-ink-light tracking-wider uppercase mt-1">
                       {folder.cardCount ?? 0} {folder.cardCount === 1 ? 'card' : 'cards'}
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                <div className="flex flex-wrap items-center gap-2 sm:shrink-0" onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => {
                       setEditingFolder(folder);

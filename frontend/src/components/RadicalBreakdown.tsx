@@ -26,7 +26,7 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
       {/* Per-character definitions */}
       {hasCharDefs && (
         <div>
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
             <span className="text-xs tracking-wider uppercase text-ink-light">Characters</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
@@ -34,13 +34,13 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
             {charDefs.map(({ character, definition, pinyin }) => (
               <div
                 key={character}
-                className="flex flex-col items-center px-3 py-2 min-w-[64px] max-w-[120px] border border-border bg-cream"
+                className="flex min-w-[64px] max-w-[120px] flex-col items-center px-3 py-2 border border-border bg-cream"
               >
                 <span className="font-chinese text-2xl leading-tight text-ink">{character}</span>
                 {pinyin && (
-                  <span className="text-[11px] text-ink mt-1 tracking-wide">{pinyin}</span>
+                  <span className="text-[11px] text-ink mt-1 tracking-wide text-center break-words">{pinyin}</span>
                 )}
-                <span className="text-[10px] text-ink mt-1 text-center leading-tight">
+                <span className="text-[10px] text-ink mt-1 text-center leading-tight break-words">
                   {definition.split(';')[0].trim()}
                 </span>
               </div>
@@ -52,7 +52,7 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
       {/* Component breakdown */}
       {hasDecompositions && (
         <div>
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
             <span className="text-xs tracking-wider uppercase text-ink-light">Breakdown</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
@@ -66,7 +66,7 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
                   {components.map((comp) => (
                     <div
                       key={comp.character}
-                      className={`flex flex-col items-center px-3 py-2 min-w-[52px] border ${
+                      className={`flex min-w-[52px] max-w-full flex-col items-center px-3 py-2 border ${
                         comp.type === 'phonetic'
                           ? 'border-stamp-red bg-stamp-red-light/30'
                           : comp.type === 'semantic'
@@ -78,12 +78,12 @@ export default function RadicalBreakdown({ hanzi }: { hanzi: string }) {
                         {comp.character}
                       </span>
                       {comp.type === 'phonetic' && comp.phoneticPinyin && (
-                        <span className="text-[10px] text-ink mt-1 tracking-wide">
+                        <span className="text-[10px] text-ink mt-1 tracking-wide text-center break-words">
                           {comp.phoneticPinyin}
                         </span>
                       )}
                       {comp.meaning && (
-                        <span className="text-[10px] text-ink mt-0.5 text-center leading-tight max-w-[64px]">
+                        <span className="text-[10px] text-ink mt-0.5 text-center leading-tight max-w-[64px] break-words">
                           {comp.meaning}
                         </span>
                       )}

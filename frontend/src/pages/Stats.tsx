@@ -21,33 +21,33 @@ export default function Stats() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4">
+    <div className="max-w-6xl mx-auto px-1 sm:px-4">
       {/* Header */}
-      <div className="mb-10 pt-8">
+      <div className="mb-8 pt-6 sm:mb-10 sm:pt-8">
         <div className="inline-block mb-4">
           <span className="field-label">Analytics</span>
         </div>
-        <h1 className="display-title text-4xl md:text-5xl text-ink">Your Stats</h1>
+        <h1 className="display-title text-4xl md:text-5xl text-ink break-words">Your Stats</h1>
       </div>
 
       {/* Overview Stats */}
-      <div className="document-card p-6 mb-8">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="document-card p-4 sm:p-6 mb-8">
+        <div className="flex flex-wrap items-center gap-3 mb-6">
           <span className="field-label">Overview</span>
           <div className="flex-1 border-t border-dashed border-border" />
         </div>
 
         <div className="grid grid-cols-1 gap-6">
-          <div className="p-6 border border-border">
+          <div className="p-4 sm:p-6 border border-border">
             <div className="text-xs tracking-wider uppercase text-ink-light mb-4">Total Cards</div>
-            <div className="font-display-alt text-5xl font-semibold text-ink">{stats?.totalCards || 0}</div>
+            <div className="font-display-alt text-4xl sm:text-5xl font-semibold text-ink break-words">{stats?.totalCards || 0}</div>
             <div className="text-xs text-ink-light mt-2">In your collection</div>
           </div>
         </div>
       </div>
 
       {/* Footer decoration */}
-      <div className="flex items-center justify-center gap-4 py-8 text-border">
+      <div className="flex flex-wrap items-center justify-center gap-4 py-8 text-border text-center">
         <div className="w-8 h-px bg-border" />
         <span className="text-xs tracking-[0.3em] uppercase">Statistics</span>
         <div className="w-8 h-px bg-border" />
