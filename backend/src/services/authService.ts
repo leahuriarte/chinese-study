@@ -22,6 +22,7 @@ const defaultSettings = {
   dailyReviewLimit: 100,
   preferredQuizModes: ['hanzi_to_pinyin'],
   showPinyinTones: 'marks',
+  characterSet: 'simplified',
   theme: {
     presetId: 'china-blue',
     primaryColor: '#1d4ed8',

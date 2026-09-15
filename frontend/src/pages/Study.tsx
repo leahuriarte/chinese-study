@@ -15,6 +15,12 @@ import WritingQuiz from '../components/study/WritingQuiz';
 import HandwrittenTextAnswer from '../components/study/HandwrittenTextAnswer';
 import RadicalBreakdown from '../components/RadicalBreakdown';
 import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  getCharacterSetFromSettings,
+  getDisplayHanzi,
+  isHanziAnswerEquivalent,
+} from '../lib/hanziVariants';
 
 const quizModes: { value: QuizMode; label: string; description: string; icon: string }[] = [
   { value: 'hanzi_to_pinyin', label: 'Hanzi → Pinyin', description: 'See character, type pinyin', icon: '拼' },
@@ -160,6 +166,8 @@ const buildStudySessionPayload = (
 });
 
 export default function Study() {
+  const { user } = useAuth();
+  const characterSet = getCharacterSetFromSettings(user?.settings);
   const [mode, setMode] = useState<QuizMode>('hanzi_to_pinyin');
   const [writingMode, setWritingMode] = useState<WritingMode>('freehand');
   const [sessionType, setSessionType] = useState<SessionType>('mastery');
@@ -303,7 +311,7 @@ export default function Study() {
       case 'pinyin_to_hanzi':
       case 'english_to_hanzi':
       case 'english_pinyin_to_hanzi':
-        return card.hanzi;
+        return getDisplayHanzi(card, characterSet);
       default:
         return '';
     }
@@ -313,7 +321,7 @@ export default function Study() {
     switch (quizMode) {
       case 'hanzi_to_pinyin':
       case 'hanzi_to_english':
-        return card.hanzi;
+        return getDisplayHanzi(card, characterSet);
       case 'pinyin_to_hanzi':
       case 'pinyin_to_english':
         return card.pinyinDisplay;
@@ -349,6 +357,10 @@ export default function Study() {
 
     if (normalizedUser === normalizedCorrect) {
       return true;
+    }
+
+    if (hanziWritingModes.has(quizMode)) {
+      return isHanziAnswerEquivalent(userAnswer, card);
     }
 
     // For pinyin modes, accept both tone marks (pinyinDisplay) and tone numbers (pinyin)
@@ -1056,8 +1068,8 @@ export default function Study() {
         {!showResult && currentCard ? (
           hanziWritingModes.has(mode) ? (
             <WritingQuiz
-              key={`${currentCard.id}-${writingMode}`}
-              card={currentCard}
+              key={`${currentCard.id}-${writingMode}-${characterSet}`}
+              targetHanzi={getDisplayHanzi(currentCard, characterSet)}
               prompt={prompt}
               subPrompt={mode === 'english_pinyin_to_hanzi' ? currentCard.pinyinDisplay : undefined}
               writingMode={writingMode}
@@ -1169,7 +1181,7 @@ export default function Study() {
             <div className="space-y-4 mb-8">
               <div className="py-6 bg-cream border border-border px-6">
                 <div className="text-center">
-                  <div className="text-6xl font-kaiti text-stamp-red mb-3">{answeredCard.hanzi}</div>
+                  <div className="text-6xl font-kaiti text-stamp-red mb-3">{getDisplayHanzi(answeredCard, characterSet)}</div>
                   <div className="text-xl text-ink-light mb-1">{answeredCard.pinyinDisplay}</div>
                   <div className="text-ink">{answeredCard.english}</div>
                 </div>

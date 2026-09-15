@@ -20,6 +20,7 @@ const refreshSchema = z.object({
 const hexColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Expected a hex color like #1d4ed8');
 
 const updateSettingsSchema = z.object({
+  characterSet: z.enum(['simplified', 'traditional']).optional(),
   theme: z.object({
     presetId: z.string().min(1).max(40),
     primaryColor: hexColorSchema,

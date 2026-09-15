@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { COLOR_THEMES, getThemeFromSettings, getWritingSettingsFromSettings } from '../../lib/theme';
-import type { PenStyle, ThemeSettings, WritingSettings } from '../../types';
+import { getCharacterSetFromSettings } from '../../lib/hanziVariants';
+import type { CharacterSet, PenStyle, ThemeSettings, WritingSettings } from '../../types';
 
 export default function SettingsPicker() {
   const { user, updateSettings } = useAuth();
@@ -10,9 +11,14 @@ export default function SettingsPicker() {
     () => getWritingSettingsFromSettings(user?.settings),
     [user?.settings]
   );
+  const savedCharacterSet = useMemo(
+    () => getCharacterSetFromSettings(user?.settings),
+    [user?.settings]
+  );
   const [open, setOpen] = useState(false);
   const [draftTheme, setDraftTheme] = useState<ThemeSettings>(savedTheme);
   const [draftWritingSettings, setDraftWritingSettings] = useState<WritingSettings>(savedWritingSettings);
+  const [draftCharacterSet, setDraftCharacterSet] = useState<CharacterSet>(savedCharacterSet);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [savedMessage, setSavedMessage] = useState('');
@@ -25,6 +31,10 @@ export default function SettingsPicker() {
   useEffect(() => {
     setDraftWritingSettings(savedWritingSettings);
   }, [savedWritingSettings]);
+
+  useEffect(() => {
+    setDraftCharacterSet(savedCharacterSet);
+  }, [savedCharacterSet]);
 
   useEffect(() => {
     if (!open) {
@@ -51,7 +61,8 @@ export default function SettingsPicker() {
     draftTheme.secondaryColor.toLowerCase() !== savedTheme.secondaryColor.toLowerCase() ||
     draftTheme.presetId !== savedTheme.presetId ||
     draftWritingSettings.penStyle !== savedWritingSettings.penStyle ||
-    draftWritingSettings.brushSensitivity !== savedWritingSettings.brushSensitivity;
+    draftWritingSettings.brushSensitivity !== savedWritingSettings.brushSensitivity ||
+    draftCharacterSet !== savedCharacterSet;
 
   const selectTheme = (theme: ThemeSettings) => {
     setDraftTheme(theme);
@@ -81,6 +92,12 @@ export default function SettingsPicker() {
     setSavedMessage('');
   };
 
+  const updateCharacterSet = (characterSet: CharacterSet) => {
+    setDraftCharacterSet(characterSet);
+    setError('');
+    setSavedMessage('');
+  };
+
   const saveSettings = async () => {
     setSaving(true);
     setError('');
@@ -93,6 +110,7 @@ export default function SettingsPicker() {
           presetId: selectedPreset?.presetId ?? draftTheme.presetId,
         },
         writing: draftWritingSettings,
+        characterSet: draftCharacterSet,
       });
       setSavedMessage('Saved');
     } catch (saveError) {
@@ -173,6 +191,28 @@ export default function SettingsPicker() {
           </div>
 
           <div className="flex items-center gap-3 mt-6 mb-4">
+            <span className="field-label">Characters</span>
+            <div className="flex-1 border-t border-dashed border-border" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <CharacterSetButton
+              label="Simplified"
+              sample="汉"
+              characterSet="simplified"
+              active={draftCharacterSet === 'simplified'}
+              onSelect={updateCharacterSet}
+            />
+            <CharacterSetButton
+              label="Traditional"
+              sample="漢"
+              characterSet="traditional"
+              active={draftCharacterSet === 'traditional'}
+              onSelect={updateCharacterSet}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 mt-6 mb-4">
             <span className="field-label">Writing</span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
@@ -227,6 +267,7 @@ export default function SettingsPicker() {
               onClick={() => {
                 selectTheme(savedTheme);
                 setDraftWritingSettings(savedWritingSettings);
+                setDraftCharacterSet(savedCharacterSet);
               }}
               disabled={!hasChanges || saving}
               className="vintage-btn px-4 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -249,6 +290,39 @@ export default function SettingsPicker() {
         </div>
       )}
     </div>
+  );
+}
+
+function CharacterSetButton({
+  label,
+  sample,
+  characterSet,
+  active,
+  onSelect,
+}: {
+  label: string;
+  sample: string;
+  characterSet: CharacterSet;
+  active: boolean;
+  onSelect: (characterSet: CharacterSet) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(characterSet)}
+      className={`border-2 p-3 text-left transition-all ${
+        active
+          ? 'border-stamp-red bg-stamp-red-light/30'
+          : 'border-border hover:border-stamp-red'
+      }`}
+    >
+      <span className="block h-8 mb-3 font-chinese text-3xl leading-none text-stamp-red" aria-hidden="true">
+        {sample}
+      </span>
+      <span className="block text-xs tracking-wider uppercase text-ink">
+        {label}
+      </span>
+    </button>
   );
 }
 

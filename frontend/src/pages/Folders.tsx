@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import type { Card, Folder } from '../types';
+import { useAuth } from '../contexts/AuthContext';
+import { getCharacterSetFromSettings, getDisplayHanzi, getHanziAnswerVariants } from '../lib/hanziVariants';
 
 export default function Folders() {
   const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
@@ -15,6 +17,8 @@ export default function Folders() {
   const [cardSearch, setCardSearch] = useState('');
   const [selectedCardIds, setSelectedCardIds] = useState<Set<string>>(new Set());
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const characterSet = getCharacterSetFromSettings(user?.settings);
 
   const { data: folders = [], isLoading } = useQuery({
     queryKey: ['folders'],
@@ -124,7 +128,9 @@ export default function Folders() {
     if (folderCardIds.has(c.id)) return false;
     if (!cardSearch) return true;
     const s = cardSearch.toLowerCase();
-    return c.hanzi.includes(s) || c.pinyinDisplay.toLowerCase().includes(s) || c.english.toLowerCase().includes(s);
+    return getHanziAnswerVariants(c).some((hanzi) => hanzi.includes(s))
+      || c.pinyinDisplay.toLowerCase().includes(s)
+      || c.english.toLowerCase().includes(s);
   });
 
   // Drill-down view for a selected folder
@@ -169,7 +175,7 @@ export default function Folders() {
             {folderCards.map((card: Card) => (
               <div key={card.id} className="document-card p-4 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-6 min-w-0">
-                  <span className="text-3xl font-kaiti text-stamp-red shrink-0">{card.hanzi}</span>
+                  <span className="text-3xl font-kaiti text-stamp-red shrink-0">{getDisplayHanzi(card, characterSet)}</span>
                   <div className="min-w-0">
                     <div className="text-sm text-ink-light">{card.pinyinDisplay}</div>
                     <div className="text-sm text-ink truncate">{card.english}</div>
@@ -223,7 +229,7 @@ export default function Folders() {
                           : 'border-border hover:border-stamp-red'
                       }`}
                     >
-                      <span className="text-2xl font-kaiti text-stamp-red shrink-0">{card.hanzi}</span>
+                      <span className="text-2xl font-kaiti text-stamp-red shrink-0">{getDisplayHanzi(card, characterSet)}</span>
                       <div className="min-w-0">
                         <div className="text-xs text-ink-light">{card.pinyinDisplay}</div>
                         <div className="text-sm text-ink truncate">{card.english}</div>

@@ -19,9 +19,12 @@ export interface UserSettings {
   dailyReviewLimit: number;     // default 100
   preferredQuizModes: QuizMode[];
   showPinyinTones: 'numbers' | 'marks'; // e.g., "ma3" vs "mǎ"
+  characterSet?: CharacterSet;
   theme?: ThemeSettings;
   writing?: WritingSettings;
 }
+
+export type CharacterSet = 'simplified' | 'traditional';
 
 export interface ThemeSettings {
   presetId: string;

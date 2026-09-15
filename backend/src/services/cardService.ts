@@ -1,11 +1,14 @@
 import prisma from '../db.js';
 import { integratedChineseVocab } from '../data/integratedChineseVocab.js';
 import { integratedChineseVocabPart2 } from '../data/integratedChineseVocabPart2.js';
+import { integratedChineseVocabPart3 } from '../data/integratedChineseVocabPart3.js';
+import { getHanziSearchVariants } from '../utils/hanziConversion.js';
 
 // Set of all pre-seeded hanzi for quick lookup
 const preSeededHanzi = new Set([
   ...integratedChineseVocab.map(v => v.hanzi),
   ...integratedChineseVocabPart2.map(v => v.hanzi),
+  ...integratedChineseVocabPart3.map(v => v.hanzi),
 ]);
 
 export interface CreateCardData {
@@ -76,8 +79,9 @@ export const cardService = {
     }
 
     if (search) {
+      const hanziSearches = getHanziSearchVariants(search);
       where.OR = [
-        { hanzi: { contains: search, mode: 'insensitive' } },
+        ...hanziSearches.map(hanzi => ({ hanzi: { contains: hanzi, mode: 'insensitive' } })),
         { pinyin: { contains: search, mode: 'insensitive' } },
         { english: { contains: search, mode: 'insensitive' } },
       ];

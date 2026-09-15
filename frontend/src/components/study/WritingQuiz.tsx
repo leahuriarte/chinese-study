@@ -3,12 +3,11 @@ import HanziWriter from 'hanzi-writer';
 import { getStroke } from 'perfect-freehand';
 import { useAuth } from '../../contexts/AuthContext';
 import { getWritingSettingsFromSettings } from '../../lib/theme';
-import type { Card } from '../../types';
 import type { WritingMode } from '../../pages/Study';
 import type { StrokeOptions } from 'perfect-freehand';
 
 interface WritingQuizProps {
-  card: Card;
+  targetHanzi: string;
   prompt: string;
   subPrompt?: string;
   writingMode: WritingMode;
@@ -178,7 +177,7 @@ function drawCanvasStroke(
   drawSmoothStroke(ctx, stroke);
 }
 
-export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onComplete }: WritingQuizProps) {
+export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMode, onComplete }: WritingQuizProps) {
   const { user } = useAuth();
   const writingSettings = useMemo(
     () => getWritingSettingsFromSettings(user?.settings),
@@ -215,7 +214,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
   const completedStrokesRef = useRef<CanvasStroke[]>([]);
   const activeStrokeRef = useRef<CanvasStroke | null>(null);
 
-  const characters = useMemo(() => Array.from(card.hanzi), [card.hanzi]);
+  const characters = useMemo(() => Array.from(targetHanzi), [targetHanzi]);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [charMistakes, setCharMistakes] = useState<number[]>([]);
 
@@ -256,7 +255,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
         newWriter.cancelQuiz();
       }
     };
-  }, [card.hanzi, showHint, writingMode, currentCharIndex, characters, themeRevision]);
+  }, [targetHanzi, showHint, writingMode, currentCharIndex, characters, themeRevision]);
 
   const initCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -277,7 +276,7 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
   useEffect(() => {
     if (writingMode !== 'freehand' || !canvasRef.current) return;
     initCanvas();
-  }, [writingMode, card.hanzi, initCanvas, themeRevision]);
+  }, [writingMode, targetHanzi, initCanvas, themeRevision]);
 
   useEffect(() => {
     return () => {
@@ -581,12 +580,12 @@ export default function WritingQuiz({ card, prompt, subPrompt, writingMode, onCo
                 <span
                   className="leading-none font-chinese text-stamp-red"
                   style={{
-                    fontSize: card.hanzi.length === 1 ? '200px' :
-                              card.hanzi.length === 2 ? '120px' :
-                              card.hanzi.length === 3 ? '90px' : '70px'
+                    fontSize: targetHanzi.length === 1 ? '200px' :
+                              targetHanzi.length === 2 ? '120px' :
+                              targetHanzi.length === 3 ? '90px' : '70px'
                   }}
                 >
-                  {card.hanzi}
+                  {targetHanzi}
                 </span>
               </div>
               <span className="text-xs text-ink-light tracking-wider uppercase mt-2">Correct character</span>

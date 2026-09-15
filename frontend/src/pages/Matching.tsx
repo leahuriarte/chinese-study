@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { Card } from '../types';
+import type { Card, CharacterSet } from '../types';
 import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
+import { useAuth } from '../contexts/AuthContext';
+import { getCharacterSetFromSettings, getDisplayHanzi } from '../lib/hanziVariants';
 
 type TileType = 'hanzi' | 'pinyin' | 'english';
 type GamePhase = 'config' | 'playing' | 'complete';
@@ -31,8 +33,8 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function getTileContent(card: Card, type: TileType): string {
-  if (type === 'hanzi') return card.hanzi;
+function getTileContent(card: Card, type: TileType, characterSet: CharacterSet): string {
+  if (type === 'hanzi') return getDisplayHanzi(card, characterSet);
   if (type === 'pinyin') return card.pinyinDisplay || card.pinyin;
   return card.english;
 }
@@ -44,6 +46,8 @@ function formatTime(ms: number): string {
 }
 
 export default function Matching() {
+  const { user } = useAuth();
+  const characterSet = getCharacterSetFromSettings(user?.settings);
   const [studySource, setStudySource] = useState<'lesson' | 'folder'>('lesson');
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLessons, setSelectedLessons] = useState<number[]>([]);
@@ -102,13 +106,13 @@ export default function Matching() {
         id: `${card.id}-${typeA}`,
         cardId: card.id,
         type: typeA,
-        content: getTileContent(card, typeA),
+        content: getTileContent(card, typeA, characterSet),
       })),
       ...picked.map(card => ({
         id: `${card.id}-${typeB}`,
         cardId: card.id,
         type: typeB,
-        content: getTileContent(card, typeB),
+        content: getTileContent(card, typeB, characterSet),
       })),
     ]);
     setTiles(newTiles);

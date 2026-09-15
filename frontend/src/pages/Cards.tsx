@@ -4,6 +4,8 @@ import { api } from '../lib/api';
 import type { Card } from '../types';
 import RadicalBreakdown from '../components/RadicalBreakdown';
 import { getIntegratedChineseLessons, INTEGRATED_CHINESE_PARTS } from '../data/integratedChineseLessons';
+import { useAuth } from '../contexts/AuthContext';
+import { getCharacterSetFromSettings, getDisplayHanzi } from '../lib/hanziVariants';
 
 export default function Cards() {
   const [isAddingCard, setIsAddingCard] = useState(false);
@@ -12,6 +14,8 @@ export default function Cards() {
   const [selectedPart, setSelectedPart] = useState<number | null>(1);
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const characterSet = getCharacterSetFromSettings(user?.settings);
 
   const { data, isLoading } = useQuery({
     queryKey: ['cards', searchTerm, selectedPart, selectedLesson],
@@ -166,56 +170,60 @@ export default function Cards() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {data?.cards.map((card) => (
-              <div key={card.id} className="document-card p-6 group hover:shadow-document-hover transition-all">
-                {/* Card Header */}
-                <div className="flex justify-between items-start mb-4">
-                  <span className="field-label">Card</span>
-                  {card.lessonNumber && (
-                    <span className="text-xs tracking-wider uppercase px-2 py-1 border border-stamp-red text-stamp-red">
-                      L{card.lessonNumber}
-                    </span>
-                  )}
-                </div>
+            {data?.cards.map((card) => {
+              const displayHanzi = getDisplayHanzi(card, characterSet);
 
-                {/* Hanzi */}
-                <div className="py-4">
-                  <div className="text-center">
-                    <div className="text-5xl font-chinese text-stamp-red mb-3">{card.hanzi}</div>
-                    <div className="text-lg text-ink-light mb-1">{card.pinyinDisplay}</div>
-                    <div className="text-sm text-ink">{card.english}</div>
-                  </div>
-                  <RadicalBreakdown hanzi={card.hanzi} />
-                </div>
-
-                {/* Tags */}
-                {card.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4 pt-4 border-t border-dashed border-border">
-                    {card.tags.map((tag) => (
-                      <span key={tag} className="text-xs px-2 py-1 bg-cream text-ink-light border border-border">
-                        {tag}
+              return (
+                <div key={card.id} className="document-card p-6 group hover:shadow-document-hover transition-all">
+                  {/* Card Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="field-label">Card</span>
+                    {card.lessonNumber && (
+                      <span className="text-xs tracking-wider uppercase px-2 py-1 border border-stamp-red text-stamp-red">
+                        L{card.lessonNumber}
                       </span>
-                    ))}
+                    )}
                   </div>
-                )}
 
-                {/* Actions */}
-                <div className="pt-4 border-t border-dashed border-border flex gap-4">
-                  <button
-                    onClick={() => setEditingCard(card)}
-                    className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(card.id)}
-                    className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
-                  >
-                    Delete
-                  </button>
+                  {/* Hanzi */}
+                  <div className="py-4">
+                    <div className="text-center">
+                      <div className="text-5xl font-chinese text-stamp-red mb-3">{displayHanzi}</div>
+                      <div className="text-lg text-ink-light mb-1">{card.pinyinDisplay}</div>
+                      <div className="text-sm text-ink">{card.english}</div>
+                    </div>
+                    <RadicalBreakdown hanzi={card.hanzi} />
+                  </div>
+
+                  {/* Tags */}
+                  {card.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4 pt-4 border-t border-dashed border-border">
+                      {card.tags.map((tag) => (
+                        <span key={tag} className="text-xs px-2 py-1 bg-cream text-ink-light border border-border">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-dashed border-border flex gap-4">
+                    <button
+                      onClick={() => setEditingCard(card)}
+                      className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(card.id)}
+                      className="text-xs tracking-wider uppercase text-ink-light hover:text-stamp-red transition-colors"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
