@@ -68,7 +68,7 @@ export interface Folder {
   cardCount?: number;
 }
 
-export type StudySessionType = 'mastery' | 'quick';
+export type StudySessionType = 'mastery' | 'quick' | 'flashcards';
 export type WritingMode = 'stroke_order' | 'freehand';
 export type StudySource = 'lesson' | 'folder';
 

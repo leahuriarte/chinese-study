@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 const studySessionSchema = z.object({
   mode: z.string().min(1),
-  sessionType: z.enum(['mastery', 'quick']),
+  sessionType: z.enum(['mastery', 'quick', 'flashcards']),
   writingMode: z.enum(['stroke_order', 'freehand']),
   studySource: z.enum(['lesson', 'folder']),
   filters: z.object({

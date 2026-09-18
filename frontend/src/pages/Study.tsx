@@ -46,7 +46,17 @@ const getQuizModeLabel = (quizMode: QuizMode) => (
 );
 
 const getSessionTypeLabel = (type: SessionType) => (
-  type === 'mastery' ? 'Mastery' : 'Quick Review'
+  type === 'mastery' ? 'Mastery' : type === 'flashcards' ? 'Flashcards' : 'Quick Review'
+);
+
+const flashcardFrontModes: { value: QuizMode; label: string; description: string; icon: string }[] = [
+  { value: 'hanzi_to_english', label: 'Hanzi Front', description: 'Reveal pinyin and meaning', icon: '汉' },
+  { value: 'pinyin_to_english', label: 'Pinyin Front', description: 'Reveal character and meaning', icon: '拼' },
+  { value: 'english_to_hanzi', label: 'English Front', description: 'Reveal character and pinyin', icon: 'Aa' },
+];
+
+const getFlashcardFrontLabel = (quizMode: QuizMode) => (
+  flashcardFrontModes.find((item) => item.value === quizMode)?.label || getQuizModeLabel(quizMode)
 );
 
 const pinyinAnswerModes = new Set<QuizMode>([
@@ -179,6 +189,7 @@ export default function Study() {
   const [answer, setAnswer] = useState('');
   const [textAnswerInputMode, setTextAnswerInputMode] = useState<TextAnswerInputMode>('typing');
   const [showResult, setShowResult] = useState(false);
+  const [flashcardRevealed, setFlashcardRevealed] = useState(false);
   const [wasCorrect, setWasCorrect] = useState(false);
   const [answeredCard, setAnsweredCard] = useState<Card | null>(null);
   const [wasOverridden, setWasOverridden] = useState(false);
@@ -459,6 +470,7 @@ export default function Study() {
 
     setAnswer('');
     setShowResult(false);
+    setFlashcardRevealed(false);
     setAnsweredCard(null);
     setWasOverridden(false);
 
@@ -509,12 +521,29 @@ export default function Study() {
     }
   };
 
+  const handleFlashcardKnow = () => {
+    if (!currentCard) return;
+
+    setCompletedCards(prev => new Set(prev).add(currentCard.id));
+    setCardQueue(prev => prev.slice(1));
+    setFlashcardRevealed(false);
+  };
+
+  const handleFlashcardAgain = () => {
+    if (!currentCard) return;
+
+    setWrongCardIds(prev => new Set([...prev, currentCard.id]));
+    setCardQueue(prev => [...prev.slice(1), prev[0]]);
+    setFlashcardRevealed(false);
+  };
+
   const startStudying = async (selectedMode: QuizMode) => {
     setIsStartingSession(true);
     setMode(selectedMode);
     setAnswer('');
     setTextAnswerInputMode('typing');
     setShowResult(false);
+    setFlashcardRevealed(false);
     setAnsweredCard(null);
     setWasOverridden(false);
     setCardQueue([]);
@@ -583,6 +612,7 @@ export default function Study() {
       setAnswer('');
       setTextAnswerInputMode('typing');
       setShowResult(false);
+      setFlashcardRevealed(false);
       setWasCorrect(false);
       setAnsweredCard(null);
       setWasOverridden(false);
@@ -612,6 +642,7 @@ export default function Study() {
     setAnswer('');
     setTextAnswerInputMode('typing');
     setShowResult(false);
+    setFlashcardRevealed(false);
     setAnsweredCard(null);
     setWasOverridden(false);
     setCardQueue([]);
@@ -632,7 +663,7 @@ export default function Study() {
 
   const getProgress = () => {
     const total = sessionTotalCards || (allCardsData?.cards?.length || 0);
-    if (sessionType === 'quick') {
+    if (sessionType === 'quick' || sessionType === 'flashcards') {
       return { current: completedCards.size, total };
     } else {
       return { current: masteredCards.size, total };
@@ -646,7 +677,7 @@ export default function Study() {
   };
 
   const latestStudySessionProgress = latestStudySession
-    ? latestStudySession.sessionType === 'quick'
+    ? latestStudySession.sessionType === 'quick' || latestStudySession.sessionType === 'flashcards'
       ? latestStudySession.state.completedCardIds.length
       : latestStudySession.state.masteredCardIds.length
     : 0;
@@ -659,7 +690,11 @@ export default function Study() {
   const latestStudySessionDescription = isLoadingLatestStudySession
     ? 'Checking for saved progress...'
     : latestStudySession
-      ? `${getSessionTypeLabel(latestStudySession.sessionType)} • ${getQuizModeLabel(latestStudySession.mode)} • ${latestStudySessionProgress}/${latestStudySessionTotal}`
+      ? `${getSessionTypeLabel(latestStudySession.sessionType)} • ${
+        latestStudySession.sessionType === 'flashcards'
+          ? getFlashcardFrontLabel(latestStudySession.mode)
+          : getQuizModeLabel(latestStudySession.mode)
+      } • ${latestStudySessionProgress}/${latestStudySessionTotal}`
       : 'No unfinished session yet';
   const canResumeLatestSession = Boolean(latestStudySession && latestStudySession.queueCards.length > 0);
 
@@ -685,7 +720,7 @@ export default function Study() {
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <SessionTypeButton
               active={sessionType === 'mastery'}
               onClick={() => setSessionType('mastery')}
@@ -699,6 +734,13 @@ export default function Study() {
               icon="快"
               title="Quick Review"
               description="Go through all cards once"
+            />
+            <SessionTypeButton
+              active={sessionType === 'flashcards'}
+              onClick={() => setSessionType('flashcards')}
+              icon="卡"
+              title="Flashcards"
+              description="Reveal cards and self-grade"
             />
             <SessionTypeButton
               active={false}
@@ -791,40 +833,44 @@ export default function Study() {
         </div>
 
         {/* Writing Mode Selection */}
-        <div className="document-card p-4 sm:p-6 mb-8">
-          <div className="flex flex-wrap items-center gap-3 mb-6">
-            <span className="field-label">Writing Mode</span>
-            <div className="flex-1 border-t border-dashed border-border" />
-            <span className="text-xs text-ink-light">For character writing practice</span>
-          </div>
+        {sessionType !== 'flashcards' && (
+          <div className="document-card p-4 sm:p-6 mb-8">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              <span className="field-label">Writing Mode</span>
+              <div className="flex-1 border-t border-dashed border-border" />
+              <span className="text-xs text-ink-light">For character writing practice</span>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <WritingModeButton
-              active={writingMode === 'freehand'}
-              onClick={() => setWritingMode('freehand')}
-              icon="画"
-              title="Freehand"
-              description="Draw freely and self-assess"
-            />
-            <WritingModeButton
-              active={writingMode === 'stroke_order'}
-              onClick={() => setWritingMode('stroke_order')}
-              icon="笔"
-              title="Stroke Order"
-              description="Guided practice with stroke validation (still in development)"
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <WritingModeButton
+                active={writingMode === 'freehand'}
+                onClick={() => setWritingMode('freehand')}
+                icon="画"
+                title="Freehand"
+                description="Draw freely and self-assess"
+              />
+              <WritingModeButton
+                active={writingMode === 'stroke_order'}
+                onClick={() => setWritingMode('stroke_order')}
+                icon="笔"
+                title="Stroke Order"
+                description="Guided practice with stroke validation (still in development)"
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Quiz Mode Cards */}
         <div className="mb-8">
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <span className="field-label">Select Quiz Type</span>
+            <span className="field-label">
+              {sessionType === 'flashcards' ? 'Select Front Side' : 'Select Quiz Type'}
+            </span>
             <div className="flex-1 border-t border-dashed border-border" />
           </div>
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] gap-4">
-            {quizModes.map((quizMode) => (
+            {(sessionType === 'flashcards' ? flashcardFrontModes : quizModes).map((quizMode) => (
               <button
                 key={quizMode.value}
                 onClick={() => void startStudying(quizMode.value)}
@@ -865,10 +911,10 @@ export default function Study() {
 
   // Session Complete State
   if (isSessionComplete() || (!currentCard && !isLoading)) {
-    const sessionLabel = sessionType === 'mastery' ? 'Mastery' : 'Quick Review';
+    const sessionLabel = getSessionTypeLabel(sessionType);
 
     const buildDefaultFolderName = () => {
-      const typeLabel = sessionType === 'mastery' ? 'Mastery' : 'Quick';
+      const typeLabel = sessionType === 'mastery' ? 'Mastery' : sessionType === 'flashcards' ? 'Flashcards' : 'Quick';
       const sourceLabel = studySource === 'folder'
         ? foldersData?.find(f => f.id === selectedFolderId)?.name || 'Folder'
         : selectedLessons.length > 0
@@ -884,11 +930,12 @@ export default function Study() {
             <span className="font-chinese">成</span>
           </div>
           <h1 className="display-title text-3xl md:text-4xl text-ink mb-4">
-            {sessionType === 'mastery' ? 'All Cards Mastered!' : 'All Done!'}
+            {sessionType === 'mastery' ? 'All Cards Mastered!' : sessionType === 'flashcards' ? 'Flashcards Complete!' : 'All Done!'}
           </h1>
           <p className="text-ink-light mb-2">
             {sessionType === 'mastery' && `You got all ${masteredCards.size} cards correct 3 times each!`}
             {sessionType === 'quick' && `You reviewed all ${completedCards.size} cards.`}
+            {sessionType === 'flashcards' && `You reviewed all ${completedCards.size} cards.`}
           </p>
           <p className="text-xs text-ink-light tracking-wider uppercase mb-8">
             Session: {sessionLabel}
@@ -988,10 +1035,12 @@ export default function Study() {
     );
   }
 
-  const currentModeLabel = quizModes.find((m) => m.value === mode)?.label || mode;
+  const currentModeLabel = sessionType === 'flashcards'
+    ? `Flashcards: ${getFlashcardFrontLabel(mode)}`
+    : quizModes.find((m) => m.value === mode)?.label || mode;
   const prompt = currentCard ? getPrompt(currentCard, mode) : '';
   const placeholder = getPlaceholder(mode);
-  const sessionLabel = sessionType === 'mastery' ? 'Mastery' : 'Quick';
+  const sessionLabel = sessionType === 'mastery' ? 'Mastery' : sessionType === 'flashcards' ? 'Flashcards' : 'Quick';
 
   const currentMasteryCard = sessionType === 'mastery' && cardQueue[0]
     ? cardQueue[0]
@@ -1065,7 +1114,72 @@ export default function Study() {
 
       {/* Main Card */}
       <div className="document-card p-4 sm:p-8">
-        {!showResult && currentCard ? (
+        {sessionType === 'flashcards' && currentCard ? (
+          <>
+            <div className="text-center mb-8 sm:mb-10">
+              <span className="field-label mb-4 inline-block">
+                {getFlashcardFrontLabel(mode)}
+              </span>
+              <div className={`mt-4 ${
+                hanziPromptModes.has(mode)
+                  ? 'text-6xl sm:text-8xl font-kaiti text-stamp-red break-words'
+                  : 'text-2xl sm:text-3xl font-display text-ink break-words'
+              }`}>
+                {prompt}
+              </div>
+            </div>
+
+            {flashcardRevealed ? (
+              <>
+                <div className="space-y-4 mb-8">
+                  <div className="py-6 bg-cream border border-border px-6">
+                    <div className="text-center">
+                      <div className="text-5xl sm:text-6xl font-kaiti text-stamp-red mb-3 break-words">{getDisplayHanzi(currentCard, characterSet)}</div>
+                      <div className="text-lg sm:text-xl text-ink-light mb-1 break-words">{currentCard.pinyinDisplay}</div>
+                      <div className="text-ink break-words">{currentCard.english}</div>
+                    </div>
+                    <RadicalBreakdown hanzi={currentCard.hanzi} />
+                  </div>
+
+                  {currentCard.exampleSentence && (
+                    <div className="p-4 bg-cream border border-border">
+                      <p className="text-xs tracking-wider uppercase text-ink-light mb-2">Example Sentence:</p>
+                      <p className="text-lg font-chinese break-words">{currentCard.exampleSentence}</p>
+                      {currentCard.examplePinyin && (
+                        <p className="text-ink-light mt-1">{currentCard.examplePinyin}</p>
+                      )}
+                      {currentCard.exampleEnglish && (
+                        <p className="text-ink-light text-sm mt-1">{currentCard.exampleEnglish}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={handleFlashcardAgain}
+                    className="vintage-btn border-stamp-red text-stamp-red hover:bg-stamp-red hover:text-accent-contrast"
+                  >
+                    Again
+                  </button>
+                  <button
+                    onClick={handleFlashcardKnow}
+                    className="vintage-btn vintage-btn-primary"
+                  >
+                    Know
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                onClick={() => setFlashcardRevealed(true)}
+                className="vintage-btn vintage-btn-primary w-full"
+              >
+                Reveal
+              </button>
+            )}
+          </>
+        ) : !showResult && currentCard ? (
           hanziWritingModes.has(mode) ? (
             <WritingQuiz
               key={`${currentCard.id}-${writingMode}-${characterSet}`}
