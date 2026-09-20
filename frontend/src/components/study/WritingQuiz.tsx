@@ -223,6 +223,19 @@ export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMod
   const characters = useMemo(() => Array.from(targetHanzi), [targetHanzi]);
   const [currentCharIndex, setCurrentCharIndex] = useState(0);
   const [charMistakes, setCharMistakes] = useState<number[]>([]);
+  const correctAnswerCharacterCount = Math.max(characters.length, 1);
+  const correctAnswerWidth = correctAnswerCharacterCount === 1
+    ? 300
+    : Math.min(760, Math.max(360, correctAnswerCharacterCount * 150));
+  const correctAnswerFontMax = correctAnswerCharacterCount === 1
+    ? 200
+    : Math.max(32, Math.min(140, Math.floor((correctAnswerWidth - 40) / correctAnswerCharacterCount)));
+  const correctAnswerFontMin = correctAnswerCharacterCount === 1
+    ? 120
+    : Math.max(24, Math.min(56, Math.floor(260 / correctAnswerCharacterCount)));
+  const correctAnswerFontSize = correctAnswerCharacterCount === 1
+    ? `clamp(${correctAnswerFontMin}px, 52vw, ${correctAnswerFontMax}px)`
+    : `clamp(${correctAnswerFontMin}px, ${68 / correctAnswerCharacterCount}vw, ${correctAnswerFontMax}px)`;
 
   useEffect(() => {
     const handleThemeChange = () => setThemeRevision((revision) => revision + 1);
@@ -579,28 +592,29 @@ export default function WritingQuiz({ targetHanzi, prompt, subPrompt, writingMod
           </div>
 
           {showComparison && (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center w-full md:w-auto">
               <div
                 className="writing-surface flex items-center justify-center overflow-hidden select-none"
                 style={{
-                  width: 'min(300px, 100%)',
-                  aspectRatio: '1 / 1',
+                  width: `min(${correctAnswerWidth}px, 100%)`,
+                  height: '300px',
+                  maxHeight: '300px',
                   WebkitUserSelect: 'none',
                   WebkitTouchCallout: 'none',
                 }}
               >
                 <span
-                  className="leading-none font-chinese text-stamp-red"
+                  className="leading-none font-chinese text-stamp-red whitespace-nowrap"
                   style={{
-                    fontSize: targetHanzi.length === 1 ? '200px' :
-                              targetHanzi.length === 2 ? '120px' :
-                              targetHanzi.length === 3 ? '90px' : '70px'
+                    fontSize: correctAnswerFontSize,
                   }}
                 >
                   {targetHanzi}
                 </span>
               </div>
-              <span className="text-xs text-ink-light tracking-wider uppercase mt-2">Correct character</span>
+              <span className="text-xs text-ink-light tracking-wider uppercase mt-2">
+                {correctAnswerCharacterCount > 1 ? 'Correct characters' : 'Correct character'}
+              </span>
             </div>
           )}
         </div>
