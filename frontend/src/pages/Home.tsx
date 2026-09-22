@@ -85,6 +85,26 @@ export default function Home() {
         </Link>
 
         <Link
+          to="/speaking"
+          className="group document-card p-5 sm:p-8 hover:shadow-document-hover transition-all"
+        >
+          <div className="flex items-start justify-between gap-3 mb-6">
+            <span className="field-label">Experimental</span>
+            <div className="text-stamp-red font-chinese text-4xl font-bold opacity-20 group-hover:opacity-40 transition-opacity">
+              声
+            </div>
+          </div>
+
+          <h2 className="display-title text-2xl text-ink mb-2">Practice Speaking</h2>
+          <p className="text-ink-light text-sm mb-6">Say the pinyin and see the pitch of your tones</p>
+
+          <div className="mt-6 pt-4 border-t border-dashed border-border flex flex-wrap items-center justify-between gap-3">
+            <span className="text-xs tracking-widest uppercase text-ink-light">Open Speaking Lab</span>
+            <span className="text-ink group-hover:translate-x-1 transition-transform">→</span>
+          </div>
+        </Link>
+
+        <Link
           to="/cards"
           className="group document-card p-5 sm:p-8 hover:shadow-document-hover transition-all"
         >

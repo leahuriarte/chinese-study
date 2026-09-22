@@ -51,6 +51,10 @@ export default function Header() {
               Matching
             </NavLink>
             <span className="hidden sm:inline text-border mx-1">·</span>
+            <NavLink to="/speaking" active={isActive('/speaking')}>
+              Speaking <span className="align-super text-[0.5rem] text-stamp-red">Beta</span>
+            </NavLink>
+            <span className="hidden sm:inline text-border mx-1">·</span>
             <NavLink to="/cards" active={isActive('/cards')}>
               Cards
             </NavLink>
